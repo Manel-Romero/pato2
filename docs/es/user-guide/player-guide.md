@@ -200,7 +200,7 @@ Puedes verificar el estado del servidor en:
 
 - **Panel de estado**: `http://pato2.duckdns.org:5000`
 - **Documentación**: [docs.pato2.example.com](#)
-- **GitHub**: [github.com/pato2/issues](#)
+- **GitHub**: [github.com/Manel-Romero/pato2/issues](https://github.com/Manel-Romero/pato2/issues)
 
 ### Horarios de Soporte
 

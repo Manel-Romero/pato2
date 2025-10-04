@@ -83,7 +83,7 @@ else
 fi
 
 # Clone repository
-REPO_URL="https://github.com/your-user/Pato2_TRAE.git"
+REPO_URL="https://github.com/Manel-Romero/pato2.git"
 INSTALL_DIR="$HOME/Pato2_TRAE"
 
 if [ -d "$INSTALL_DIR" ]; then

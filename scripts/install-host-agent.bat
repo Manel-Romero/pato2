@@ -77,7 +77,7 @@ REM Download or clone repository
 if %NO_GIT% equ 0 (
     echo Cloning repository...
     cd /d "%USERPROFILE%"
-    git clone https://github.com/your-username/Pato2_TRAE.git
+    git clone https://github.com/Manel-Romero/pato2.git
     if %errorLevel% neq 0 (
         echo ERROR: Failed to clone repository.
         pause

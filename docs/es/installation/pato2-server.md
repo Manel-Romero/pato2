@@ -47,8 +47,8 @@ npm --version
 ### Método Automático (Recomendado)
 
 ```bash
-# Descargar y ejecutar script de instalación
-curl -sSL https://raw.githubusercontent.com/tu-usuario/Pato2_TRAE/main/scripts/install-pato2-server.sh | bash
+# Descargar y ejecutar script de instalación```bash
+curl -sSL https://raw.githubusercontent.com/Manel-Romero/pato2/main/scripts/install-pato2-server.sh | bash
 ```
 
 ### Método Manual
@@ -61,8 +61,8 @@ curl -sSL https://raw.githubusercontent.com/tu-usuario/Pato2_TRAE/main/scripts/i
 2. **Clonar repositorio**:
    ```bash
    cd ~
-   git clone https://github.com/tu-usuario/Pato2_TRAE.git
-   cd Pato2_TRAE/pato2-server
+   git clone https://github.com/Manel-Romero/pato2.git
+   cd pato2/pato2-server
    ```
 
 3. **Instalar dependencias de Node.js**:
@@ -342,5 +342,5 @@ curl http://pato2.duckdns.org:5000/api/status
 ## Soporte
 
 - **Documentación**: [docs.pato2.example.com](https://docs.pato2.example.com)
-- **Issues**: [GitHub Issues](https://github.com/pato2/issues)
+- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
 - **Comunidad**: [Discord Server](#)

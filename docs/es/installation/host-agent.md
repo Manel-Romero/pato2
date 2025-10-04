@@ -64,7 +64,7 @@ pip3 --version
 
 1. **Descargar script de instalación**:
    ```cmd
-   curl -O https://raw.githubusercontent.com/tu-usuario/Pato2_TRAE/main/scripts/install-host-agent.bat
+   curl -O https://raw.githubusercontent.com/Manel-Romero/pato2/main/scripts/install-host-agent.bat
    ```
 
 2. **Ejecutar como administrador**:
@@ -76,8 +76,8 @@ pip3 --version
 
 1. **Clonar repositorio**:
    ```bash
-   git clone https://github.com/tu-usuario/Pato2_TRAE.git
-   cd Pato2_TRAE/host-agent
+   git clone https://github.com/Manel-Romero/pato2.git
+   cd pato2/host-agent
    ```
 
 2. **Crear entorno virtual**:
@@ -542,5 +542,5 @@ python host_agent.py --test-backup
 ## Soporte
 
 - **Documentación**: [docs.pato2.example.com](https://docs.pato2.example.com)
-- **Issues**: [GitHub Issues](https://github.com/pato2/issues)
+- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
 - **Comunidad**: [Discord Server](#)

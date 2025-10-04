@@ -54,8 +54,8 @@ pkg install nodejs-lts
 
 1. **Download installation script**:
    ```bash
-   curl -O https://raw.githubusercontent.com/your-user/Pato2_TRAE/main/scripts/install-pato2-server.sh
-   ```
+curl -O https://raw.githubusercontent.com/Manel-Romero/pato2/main/scripts/install-pato2-server.sh
+```
 
 2. **Make executable and run**:
    ```bash
@@ -67,8 +67,8 @@ pkg install nodejs-lts
 
 1. **Clone repository**:
    ```bash
-   git clone https://github.com/your-user/Pato2_TRAE.git
-   cd Pato2_TRAE/pato2-server
+   git clone https://github.com/Manel-Romero/pato2.git
+   cd pato2/pato2-server
    ```
 
 2. **Install dependencies**:
@@ -544,5 +544,5 @@ pm2 save
 ## Support
 
 - **Documentation**: [docs.pato2.example.com](https://docs.pato2.example.com)
-- **Issues**: [GitHub Issues](https://github.com/pato2/issues)
+- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
 - **Community**: [Discord Server](#)

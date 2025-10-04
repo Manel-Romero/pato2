@@ -200,7 +200,7 @@ You can check the server status at:
 
 - **Status panel**: `http://pato2.duckdns.org:5000`
 - **Documentation**: [docs.pato2.example.com](#)
-- **GitHub**: [github.com/pato2/issues](#)
+- **GitHub**: [github.com/Manel-Romero/pato2/issues](https://github.com/Manel-Romero/pato2/issues)
 
 ### Support Hours
 

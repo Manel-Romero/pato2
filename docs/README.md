@@ -74,7 +74,7 @@ Complete host and client management system for Minecraft servers without port fo
 
 ## Soporte / Support
 
-- **Issues**: [GitHub Issues](https://github.com/pato2/issues)
+- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
 - **Documentación**: Este repositorio
 - **Comunidad**: [Discord Server](#)
 
