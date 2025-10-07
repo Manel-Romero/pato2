@@ -86,3 +86,6 @@ Thumbs.db
 
 # Archivos de Docker
 .dockerignore
+
+# Configuración del servidor
+server.utils
