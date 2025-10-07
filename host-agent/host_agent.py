@@ -280,8 +280,14 @@ class HostAgent:
         try:
             # Decode and send to Minecraft server
             raw_data = base64.b64decode(base64_data)
-            sock = self.connections[stream_id]
-            sock.send(raw_data)
+            sock = self.connections.get(stream_id)
+            # Validate socket before using it
+            try:
+                if not sock or sock.fileno() == -1:
+                    raise OSError(10038, 'Socket is invalid or closed')
+                sock.send(raw_data)
+            except Exception as e:
+                raise e
             
         except Exception as e:
             self.logger.error(f"Error handling stream data for {stream_id}: {e}")
@@ -311,7 +317,12 @@ class HostAgent:
         try:
             while stream_id in self.connections and self.running:
                 try:
-                    data = sock.recv(4096)
+                    # Always fetch current socket reference to avoid using a closed one
+                    current_sock = self.connections.get(stream_id)
+                    if not current_sock or current_sock.fileno() == -1:
+                        raise OSError(10038, 'Socket is invalid or closed')
+
+                    data = current_sock.recv(4096)
                     if not data:
                         break
                         

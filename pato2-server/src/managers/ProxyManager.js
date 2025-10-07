@@ -23,6 +23,17 @@ class ProxyManager {
         const clientAddress = `${clientSocket.remoteAddress}:${clientSocket.remotePort}`;
         
         logger.info(`New client connection: ${clientAddress} (stream: ${streamId})`);
+
+        // Attach basic error handler immediately to prevent unhandled errors
+        clientSocket.on('error', (error) => {
+            logger.error(`Client socket error ${clientAddress} (stream: ${streamId}):`, error);
+            try {
+                clientSocket.destroy();
+            } catch (e) {
+                // ignore
+            }
+            this.stats.errors++;
+        });
         
         // Check if we have an active host
         const status = this.hostManager.getStatus();

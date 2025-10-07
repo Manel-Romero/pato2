@@ -37,9 +37,24 @@ class Pato2Server {
             contentSecurityPolicy: {
                 directives: {
                     defaultSrc: ["'self'"],
-                    styleSrc: ["'self'", "'unsafe-inline'"],
-                    scriptSrc: ["'self'"],
+                    // Permitir Bootstrap y Font Awesome desde CDN
+                    styleSrc: [
+                        "'self'",
+                        "'unsafe-inline'",
+                        "https://cdn.jsdelivr.net",
+                        "https://cdnjs.cloudflare.com"
+                    ],
+                    scriptSrc: [
+                        "'self'",
+                        "https://cdn.jsdelivr.net"
+                    ],
                     imgSrc: ["'self'", "data:", "https:"],
+                    fontSrc: [
+                        "'self'",
+                        "data:",
+                        "https://cdnjs.cloudflare.com",
+                        "https://cdn.jsdelivr.net"
+                    ]
                 }
             }
         }));
