@@ -158,14 +158,9 @@ LOG_LEVEL=INFO
    cd minecraft-server
    ```
 
-2. **Download server** (example with 1.20.4):
-   ```bash
-   # Windows
-   curl -O https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar
-
-   # Linux/macOS
-   wget https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar
-   ```
+2. **Download server**:
+   [Download from PaperMC](https://papermc.io/downloads/paper)
+   Rename the downloaded file to `server.jar` and add it to the `minecraft-server` directory.
 
 3. **Accept EULA**:
    ```bash

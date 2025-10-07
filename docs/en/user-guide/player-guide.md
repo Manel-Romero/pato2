@@ -13,10 +13,6 @@ Complete guide to connect and play on Pato2 servers.
    - **Server address**: `pato2.duckdns.org:25565`
 4. **Connect**
 
-### From Minecraft Launcher (Official)
-- Recommended version: 1.20.x or higher
-- Compatible mods: Forge, Fabric (depending on server configuration)
-
 ## Connection from Minecraft Bedrock
 
 ### Minecraft Bedrock Edition (Mobile/Console)

@@ -13,10 +13,6 @@ Guía completa para conectarse y jugar en servidores Pato2.
    - **Dirección del servidor**: `pato2.duckdns.org:25565`
 4. **Conectar**
 
-### Desde Minecraft Launcher (Oficial)
-- Versión recomendada: 1.20.x o superior
-- Mods compatibles: Forge, Fabric (según configuración del servidor)
-
 ## Conexión desde Minecraft Bedrock
 
 ### Minecraft Bedrock Edition (Móvil/Consola)
