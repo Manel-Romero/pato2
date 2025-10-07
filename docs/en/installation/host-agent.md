@@ -238,15 +238,15 @@ python host_agent.py
 2. **Install service**:
    ```cmd
    # Open CMD as administrator
-   cd C:\path\to\Pato2_TRAE\host-agent
+   cd C:\path\to\Pato2\host-agent
    
    # Install service
    nssm install Pato2HostAgent
    
    # Configure service
    nssm set Pato2HostAgent Application "C:\path\to\python.exe"
-   nssm set Pato2HostAgent AppParameters "C:\path\to\Pato2_TRAE\host-agent\host_agent.py"
-   nssm set Pato2HostAgent AppDirectory "C:\path\to\Pato2_TRAE\host-agent"
+   nssm set Pato2HostAgent AppParameters "C:\path\to\Pato2\host-agent\host_agent.py"
+   nssm set Pato2HostAgent AppDirectory "C:\path\to\Pato2\host-agent"
    nssm set Pato2HostAgent DisplayName "Pato2 Host Agent"
    nssm set Pato2HostAgent Description "Host agent for Pato2 system"
    
@@ -285,9 +285,9 @@ python host_agent.py
    [Service]
    Type=simple
    User=your_user
-   WorkingDirectory=/home/your_user/Pato2_TRAE/host-agent
-   Environment=PATH=/home/your_user/Pato2_TRAE/host-agent/venv/bin
-   ExecStart=/home/your_user/Pato2_TRAE/host-agent/venv/bin/python host_agent.py
+   WorkingDirectory=/home/your_user/Pato2/host-agent
+   Environment=PATH=/home/your_user/Pato2/host-agent/venv/bin
+   ExecStart=/home/your_user/Pato2/host-agent/venv/bin/python host_agent.py
    Restart=always
    RestartSec=10
    
@@ -331,10 +331,10 @@ python host_agent.py
        <key>ProgramArguments</key>
        <array>
            <string>/usr/local/bin/python3</string>
-           <string>/Users/your_user/Pato2_TRAE/host-agent/host_agent.py</string>
+           <string>/Users/your_user/Pato2/host-agent/host_agent.py</string>
        </array>
        <key>WorkingDirectory</key>
-       <string>/Users/your_user/Pato2_TRAE/host-agent</string>
+       <string>/Users/your_user/Pato2/host-agent</string>
        <key>RunAtLoad</key>
        <true/>
        <key>KeepAlive</key>
@@ -362,7 +362,7 @@ python host_agent.py
 ```batch
 REM start-host.bat
 @echo off
-cd /d "C:\path\to\Pato2_TRAE\host-agent"
+cd /d "C:\path\to\Pato2\host-agent"
 call venv\Scripts\activate
 python host_agent.py
 pause
@@ -388,7 +388,7 @@ pause
 ```bash
 #!/bin/bash
 # start-host.sh
-cd ~/Pato2_TRAE/host-agent
+cd ~/Pato2/host-agent
 source venv/bin/activate
 python host_agent.py
 

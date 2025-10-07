@@ -57,7 +57,7 @@ if %errorLevel% neq 0 (
 )
 
 REM Set installation directory
-set "INSTALL_DIR=%USERPROFILE%\Pato2_TRAE"
+set "INSTALL_DIR=%USERPROFILE%\Pato2"
 echo Installation directory: %INSTALL_DIR%
 
 REM Create installation directory
@@ -84,7 +84,7 @@ if %NO_GIT% equ 0 (
         exit /b 1
     )
 ) else (
-    echo Please download the Pato2_TRAE project manually and extract it to:
+    echo Please download the Pato2 project manually and extract it to:
     echo %INSTALL_DIR%
     echo.
     echo Press any key when ready...

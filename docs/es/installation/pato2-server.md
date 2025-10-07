@@ -135,7 +135,7 @@ Configurar en tu router:
 ### Primera ejecución
 
 ```bash
-cd ~/Pato2_TRAE/pato2-server
+cd ~/Pato2/pato2-server
 npm start
 ```
 
@@ -161,7 +161,7 @@ npm install -g pm2
 ### Configurar aplicación
 
 ```bash
-cd ~/Pato2_TRAE/pato2-server
+cd ~/Pato2/pato2-server
 
 # Iniciar con PM2
 pm2 start src/server.js --name "pato2-server"
@@ -181,7 +181,7 @@ Crear scripts para gestión fácil:
 # Script de inicio
 cat > ~/start-pato2.sh << 'EOF'
 #!/bin/bash
-cd ~/Pato2_TRAE/pato2-server
+cd ~/Pato2/pato2-server
 pm2 start pato2-server
 EOF
 
@@ -224,7 +224,7 @@ iptables -A INPUT -p tcp --dport 22 -j ACCEPT
    mkdir -p ~/.termux/boot
    cat > ~/.termux/boot/start-pato2 << 'EOF'
    #!/data/data/com.termux/files/usr/bin/bash
-   cd ~/Pato2_TRAE/pato2-server
+   cd ~/Pato2/pato2-server
    pm2 resurrect
    EOF
    chmod +x ~/.termux/boot/start-pato2
@@ -241,7 +241,7 @@ iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 pm2 logs pato2-server
 
 # Logs del sistema
-tail -f ~/Pato2_TRAE/pato2-server/logs/app.log
+tail -f ~/Pato2/pato2-server/logs/app.log
 ```
 
 ### Monitoreo de recursos
@@ -304,7 +304,7 @@ sync && echo 3 > /proc/sys/vm/drop_caches
 
 ```bash
 # Reparar permisos de Termux
-termux-fix-shebang ~/Pato2_TRAE/pato2-server/src/server.js
+termux-fix-shebang ~/Pato2/pato2-server/src/server.js
 ```
 
 ## Verificación Final

@@ -13,7 +13,7 @@ Un sistema completo para gestionar hosts y clientes en red para crear servidores
 ## Estructura del Proyecto
 
 ```
-Pato2_TRAE/
+Pato2/
 ├── pato2-server/          # Servidor principal (Node.js) - Ejecuta en Termux
 ├── host-agent/            # Agente para hosts PC (Python)
 ├── docs/                  # Documentación completa
