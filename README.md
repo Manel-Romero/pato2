@@ -39,10 +39,9 @@ python host_agent.py
 
 ## Documentación
 
-- [Guía de Instalación](docs/installation/README.md)
-- [Manual de Usuario](docs/user-guide/README.md)
-- [Configuración](docs/configuration/README.md)
-- [API Reference](docs/api/README.md)
+- [Guía de Instalación para Hosts](docs/es/installation/host-agent.md)
+- [Manual de Usuario](docs/es/user-guide/player-guide.md)
+- [Guía de Instalación para Pato2](docs/es/installation/pato2-server.md)
 
 ## Arquitectura
 
@@ -58,7 +57,7 @@ python host_agent.py
 
 ## Variables de Entorno
 
-Ver [docs/configuration/environment.md](docs/configuration/environment.md) para la configuración completa.
+Ver [config/.env.example](config/.env.example) para comprender la estructura esperada.
 
 ## Licencia
 
