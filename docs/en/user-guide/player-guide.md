@@ -128,19 +128,6 @@ You can check the server status at:
 2. **Check firewall configuration**
 3. **Contact administrator**
 
-## Server Information
-
-### Useful Commands
-
-```
-/help                    # List of available commands
-/list                    # Connected players
-/spawn                   # Return to spawn
-/home                    # Go to your home (if configured)
-/tpa <player>           # Request teleport
-/msg <player> <message> # Private message
-```
-
 ## Enjoy playing!
 
 The Pato2 system is designed to offer you the best possible gaming experience. If you have any problems or suggestions, don't hesitate to contact the administrators.
