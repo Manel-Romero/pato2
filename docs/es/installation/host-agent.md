@@ -526,8 +526,3 @@ python host_agent.py --check-config
 # Probar backup (si está configurado)
 python host_agent.py --test-backup
 ```
-
-## Soporte
-
-- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
-- **Comunidad**: [Discord Server](#)
