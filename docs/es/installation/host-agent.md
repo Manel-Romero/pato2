@@ -527,15 +527,7 @@ python host_agent.py --check-config
 python host_agent.py --test-backup
 ```
 
-## Siguientes Pasos
-
-1. **[Configurar Google Drive](google-drive.md)** para backups automáticos
-2. **[Configurar red avanzada](network-setup.md)** si es necesario
-3. **[Leer manual para hosts](../user-guide/host-guide.md)**
-4. **[Configurar múltiples hosts](../configuration/advanced.md)** si tienes varios PCs
-
 ## Soporte
 
-- **Documentación**: [docs.pato2.example.com](https://docs.pato2.example.com)
 - **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
 - **Comunidad**: [Discord Server](#)
