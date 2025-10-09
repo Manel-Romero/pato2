@@ -533,16 +533,3 @@ pm2 status
 pm2 startup
 pm2 save
 ```
-
-## Next Steps
-
-1. **[Install Host Agent](host-agent.md)** on your PC
-2. **[Configure Google Drive](google-drive.md)** for backups
-3. **[Read User Guide](../user-guide/player-guide.md)**
-4. **[Advanced Configuration](../configuration/advanced.md)**
-
-## Support
-
-- **Documentation**: [docs.pato2.example.com](https://docs.pato2.example.com)
-- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
-- **Community**: [Discord Server](#)
