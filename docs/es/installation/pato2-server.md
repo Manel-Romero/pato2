@@ -331,16 +331,3 @@ curl http://localhost:5000/api/status
 # Verificar conectividad externa
 curl http://pato2.duckdns.org:5000/api/status
 ```
-
-## Siguientes Pasos
-
-1. **[Configurar Host Agent](host-agent.md)** en tu PC
-2. **[Configurar Google Drive](google-drive.md)** para backups
-3. **[Configurar red avanzada](network-setup.md)** si es necesario
-4. **[Leer manual del administrador](../user-guide/admin-guide.md)**
-
-## Soporte
-
-- **Documentación**: [docs.pato2.example.com](https://docs.pato2.example.com)
-- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
-- **Comunidad**: [Discord Server](#)
