@@ -228,10 +228,10 @@ function generateDashboardHTML(data) {
                         <h5 class="mb-0"><i class="fas fa-tools"></i> Acciones Rápidas</h5>
                     </div>
                     <div class="card-body">
-                        <a href="/status" class="btn btn-outline-primary me-2">
+                        <a href="http://${data.domain}:${data.webPort}/status" class="btn btn-outline-primary me-2">
                             <i class="fas fa-info-circle"></i> Estado Detallado
                         </a>
-                        <a href="/connections" class="btn btn-outline-info me-2">
+                        <a href="http://${data.domain}:${data.webPort}/connections" class="btn btn-outline-info me-2">
                             <i class="fas fa-list"></i> Ver Conexiones
                         </a>
                         <button onclick="triggerBackup()" class="btn btn-outline-warning me-2" ${!data.host.hasActiveHost ? 'disabled' : ''}>
@@ -265,7 +265,7 @@ function generateDashboardHTML(data) {
 
         function triggerBackup() {
             if (confirm('¿Iniciar backup manual del servidor?')) {
-                fetch('/api/host/backup-command', {
+                fetch('http://${data.domain}:${data.webPort}/api/host/backup-command', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: 'admin', command: 'backup_now' })
@@ -308,7 +308,7 @@ function generateStatusHTML(data) {
 <body class="bg-light">
     <nav class="navbar navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="/">
+            <a class="navbar-brand" href="http://${data.domain}:${data.webPort}/">
                 <i class="fas fa-arrow-left"></i> Volver al Dashboard
             </a>
             <span class="navbar-text">Estado del Sistema</span>
@@ -364,7 +364,7 @@ function generateConnectionsHTML(data) {
 <body class="bg-light">
     <nav class="navbar navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="/">
+            <a class="navbar-brand" href="http://${data.domain}:${data.webPort}/">
                 <i class="fas fa-arrow-left"></i> Volver al Dashboard
             </a>
             <span class="navbar-text">Conexiones Activas (${data.proxy.activeConnections})</span>
