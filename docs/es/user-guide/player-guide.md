@@ -26,7 +26,7 @@ Guía completa para conectarse y jugar en servidores Pato2.
 4. **Guardar y Conectar**
 
 ### Nota sobre Bedrock
-- La compatibilidad con Bedrock depende de la configuración del servidor
+- La compatibilidad con Bedrock está en desarollo
 - Algunos plugins pueden no funcionar correctamente en Bedrock
 
 ## Estado del Servidor
@@ -102,20 +102,6 @@ Puedes verificar el estado del servidor en:
 2. **Actualizar Minecraft** a la versión correcta
 3. **Usar el launcher oficial** para cambiar versiones
 
-### Problemas con mods
-
-**Si usas mods:**
-1. **Verificar compatibilidad** con la versión del servidor
-2. **Desactivar mods** temporalmente para probar
-3. **Consultar la lista de mods** permitidos/requeridos
-
-### Problemas de autenticación
-
-**"Failed to authenticate":**
-1. **Reiniciar Minecraft**
-2. **Verificar tu cuenta** de Minecraft
-3. **Comprobar conexión** a los servidores de Mojang
-
 ### Desconexiones frecuentes
 
 **Posibles causas:**
@@ -127,96 +113,6 @@ Puedes verificar el estado del servidor en:
 1. **Reiniciar tu router**
 2. **Verificar configuración** de firewall
 3. **Contactar al administrador**
-
-## Información del Servidor
-
-### Comandos Útiles
-
-```
-/help                    # Lista de comandos disponibles
-/list                    # Jugadores conectados
-/spawn                   # Volver al spawn
-/home                    # Ir a tu casa (si está configurado)
-/tpa <jugador>          # Solicitar teletransporte
-/msg <jugador> <mensaje> # Mensaje privado
-```
-
-### Reglas Generales
-
-- **Respeto**: Trata a otros jugadores con respeto
-- **No griefing**: No destruir construcciones de otros
-- **No spam**: Evitar mensajes repetitivos en el chat
-- **No hacks**: Uso de clientes modificados prohibido
-
-## Mejores Prácticas
-
-### Para una experiencia óptima
-
-1. **Conexión estable**: Usar internet por cable cuando sea posible
-2. **Versión correcta**: Mantener Minecraft actualizado
-3. **Configuración gráfica**: Ajustar según tu hardware
-4. **Backup personal**: Hacer capturas de tus construcciones importantes
-
-### Comunicación
-
-1. **Chat del juego**: Para comunicación general
-2. **Discord**: Para comunicación fuera del juego (si disponible)
-3. **Panel web**: Para verificar estado del servidor
-
-### Reportar problemas
-
-1. **Describir el problema** claramente
-2. **Incluir capturas** si es posible
-3. **Mencionar tu versión** de Minecraft
-4. **Contactar al administrador** por el canal apropiado
-
-## Comunidad
-
-### Canales de Comunicación
-
-- **Chat en el juego**: Comunicación principal
-- **Discord**: [Enlace al servidor Discord](#)
-- **Foro**: [Enlace al foro de la comunidad](#)
-
-### Eventos y Actividades
-
-- **Construcciones comunitarias**: Proyectos grupales
-- **Competencias**: Eventos especiales
-- **Tours**: Visitas a construcciones destacadas
-
-## Soporte
-
-### Contacto con Administradores
-
-- **En el juego**: Usar `/msg <admin> <mensaje>`
-- **Discord**: Mensaje directo o canal de soporte
-- **Email**: [admin@pato2.example.com](#)
-
-### Información Técnica
-
-- **Panel de estado**: `http://pato2.duckdns.org:5000`
-- **Documentación**: [docs.pato2.example.com](#)
-- **GitHub**: [github.com/Manel-Romero/pato2/issues](https://github.com/Manel-Romero/pato2/issues)
-
-### Horarios de Soporte
-
-- **Lunes a Viernes**: 18:00 - 22:00
-- **Fines de semana**: 10:00 - 14:00 y 18:00 - 22:00
-- **Emergencias**: Contactar por Discord
-
-## Actualizaciones del Sistema
-
-### Notificaciones
-
-- **En el juego**: Mensajes automáticos sobre mantenimiento
-- **Discord**: Anuncios de actualizaciones
-- **Panel web**: Estado en tiempo real
-
-### Durante actualizaciones
-
-- **Desconexión temporal**: Normal durante actualizaciones
-- **Backup automático**: Tu progreso está protegido
-- **Tiempo estimado**: Generalmente 5-15 minutos
 
 ## ¡Disfruta jugando!
 
