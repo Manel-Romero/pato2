@@ -38,6 +38,8 @@ class HostAgent:
         self.websocket: Optional[websocket.WebSocketApp] = None
         self.running = False
         self.connections: Dict[str, socket.socket] = {}
+        self.udp_connections: Dict[str, socket.socket] = {}
+        self.udp_recv_threads: Dict[str, threading.Thread] = {}
         
         # Managers
         self.minecraft_manager = MinecraftManager(
@@ -218,6 +220,12 @@ class HostAgent:
                 self.handle_stream_data(data)
             elif message_type == 'close':
                 self.handle_close_stream(data)
+            elif message_type == 'udp_open':
+                self.handle_udp_open(data)
+            elif message_type == 'udp_data':
+                self.handle_udp_data(data)
+            elif message_type == 'udp_close':
+                self.handle_udp_close(data)
             elif message_type == 'backup_command':
                 self.handle_backup_command(data)
             elif message_type == 'ping':
@@ -241,14 +249,20 @@ class HostAgent:
         """Handle new stream open request"""
         stream_id = data.get('streamId')
         client_address = data.get('clientAddress', 'unknown')
+        target_port = data.get('targetPort')
+        try:
+            target_port = int(target_port) if target_port is not None else None
+        except Exception:
+            target_port = None
         
-        self.logger.info(f"Opening stream {stream_id} for client {client_address}")
+        port_to_use = target_port or self.config['minecraft_port']
+        self.logger.info(f"Opening stream {stream_id} for client {client_address} -> 127.0.0.1:{port_to_use}")
         
         try:
             # Connect to local Minecraft server
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(10)
-            sock.connect(('127.0.0.1', self.config['minecraft_port']))
+            sock.connect(('127.0.0.1', port_to_use))
             
             self.connections[stream_id] = sock
             
@@ -267,6 +281,86 @@ class HostAgent:
                 'streamId': stream_id,
                 'data': str(e)
             })
+
+    def handle_udp_open(self, data: dict):
+        client_id = data.get('clientId')
+        target_port = data.get('targetPort')
+        try:
+            target_port = int(target_port) if target_port is not None else self.config['minecraft_port']
+        except Exception:
+            target_port = self.config['minecraft_port']
+        if not client_id:
+            return
+        if client_id in self.udp_connections:
+            return
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(1.0)
+            try:
+                sock.connect(('127.0.0.1', target_port))
+            except Exception:
+                pass
+            self.udp_connections[client_id] = sock
+            t = threading.Thread(target=self.udp_receive_loop, args=(client_id, sock), daemon=True)
+            self.udp_recv_threads[client_id] = t
+            t.start()
+            self.logger.info(f"Opened UDP client {client_id} -> 127.0.0.1:{target_port}")
+        except Exception as e:
+            self.logger.error(f"Failed to open UDP client {client_id}: {e}")
+
+    def handle_udp_data(self, data: dict):
+        client_id = data.get('clientId')
+        payload_b64 = data.get('data')
+        if not client_id or payload_b64 is None:
+            return
+        sock = self.udp_connections.get(client_id)
+        if not sock:
+            # Implicit open using default port
+            self.handle_udp_open({'clientId': client_id, 'targetPort': self.config['minecraft_port']})
+            sock = self.udp_connections.get(client_id)
+            if not sock:
+                return
+        try:
+            payload = base64.b64decode(payload_b64)
+            sock.send(payload)
+        except Exception as e:
+            self.logger.error(f"UDP send error for client {client_id}: {e}")
+
+    def handle_udp_close(self, data: dict):
+        client_id = data.get('clientId')
+        if not client_id:
+            return
+        try:
+            if client_id in self.udp_connections:
+                try:
+                    self.udp_connections[client_id].close()
+                except Exception:
+                    pass
+                del self.udp_connections[client_id]
+            if client_id in self.udp_recv_threads:
+                del self.udp_recv_threads[client_id]
+            self.logger.info(f"Closed UDP client {client_id}")
+        except Exception as e:
+            self.logger.error(f"Error closing UDP client {client_id}: {e}")
+
+    def udp_receive_loop(self, client_id: str, sock: socket.socket):
+        while self.running and client_id in self.udp_connections:
+            try:
+                data = sock.recv(65535)
+                if not data:
+                    time.sleep(0.05)
+                    continue
+                self.send_websocket_message({
+                    'type': 'udp_data',
+                    'clientId': client_id,
+                    'data': base64.b64encode(data).decode('ascii')
+                })
+            except socket.timeout:
+                continue
+            except Exception as e:
+                if self.running:
+                    self.logger.error(f"UDP receive error for {client_id}: {e}")
+                break
 
     def handle_stream_data(self, data):
         """Handle data for existing stream"""
@@ -364,6 +458,15 @@ class HostAgent:
         """Close all active connections"""
         for stream_id in list(self.connections.keys()):
             self.close_stream(stream_id)
+        for client_id in list(self.udp_connections.keys()):
+            try:
+                self.udp_connections[client_id].close()
+            except Exception:
+                pass
+            if client_id in self.udp_connections:
+                del self.udp_connections[client_id]
+            if client_id in self.udp_recv_threads:
+                del self.udp_recv_threads[client_id]
 
     def send_websocket_message(self, message: dict):
         """Send message via WebSocket"""

@@ -17,8 +17,9 @@ class ProxyManager {
     /**
      * Handle new client connection to the proxy
      * @param {net.Socket} clientSocket - Client TCP socket
+     * @param {number} listenPort - Proxy listening port that accepted the connection
      */
-    handleClientConnection(clientSocket) {
+    handleClientConnection(clientSocket, listenPort) {
         const streamId = uuidv4();
         const clientAddress = `${clientSocket.remoteAddress}:${clientSocket.remotePort}`;
         
@@ -63,7 +64,8 @@ class ProxyManager {
         const openMessage = {
             type: 'open',
             streamId,
-            clientAddress
+            clientAddress,
+            targetPort: listenPort
         };
 
         if (!this.hostManager.sendToActiveHost(openMessage)) {
