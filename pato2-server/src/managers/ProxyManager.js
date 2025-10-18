@@ -17,12 +17,24 @@ class ProxyManager {
     /**
      * Handle new client connection to the proxy
      * @param {net.Socket} clientSocket - Client TCP socket
+     * @param {number} listenPort - Proxy listening port that accepted the connection
      */
-    handleClientConnection(clientSocket) {
+    handleClientConnection(clientSocket, listenPort) {
         const streamId = uuidv4();
         const clientAddress = `${clientSocket.remoteAddress}:${clientSocket.remotePort}`;
         
         logger.info(`New client connection: ${clientAddress} (stream: ${streamId})`);
+
+        // Attach basic error handler immediately to prevent unhandled errors
+        clientSocket.on('error', (error) => {
+            logger.error(`Client socket error ${clientAddress} (stream: ${streamId}):`, error);
+            try {
+                clientSocket.destroy();
+            } catch (e) {
+                // ignore
+            }
+            this.stats.errors++;
+        });
         
         // Check if we have an active host
         const status = this.hostManager.getStatus();
@@ -52,7 +64,8 @@ class ProxyManager {
         const openMessage = {
             type: 'open',
             streamId,
-            clientAddress
+            clientAddress,
+            targetPort: listenPort
         };
 
         if (!this.hostManager.sendToActiveHost(openMessage)) {

@@ -84,7 +84,7 @@ fi
 
 # Clone repository
 REPO_URL="https://github.com/Manel-Romero/pato2.git"
-INSTALL_DIR="$HOME/Pato2_TRAE"
+INSTALL_DIR="$HOME/Pato2"
 
 if [ -d "$INSTALL_DIR" ]; then
     print_warning "Directory $INSTALL_DIR already exists"

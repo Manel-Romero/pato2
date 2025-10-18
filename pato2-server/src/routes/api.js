@@ -134,7 +134,10 @@ function createApiRoutes(hostManager, proxyManager) {
                 host: hostStatus,
                 proxy: {
                     ready: proxyManager.isReady(),
-                    port: parseInt(process.env.PROXY_TCP_PORT) || 25565,
+                    ports: (process.env.PROXY_TCP_PORTS || process.env.PROXY_TCP_PORT || '25565')
+                        .split(',')
+                        .map(port => parseInt(port.trim()))
+                        .filter(n => !isNaN(n)),
                     stats: proxyStats
                 },
                 timestamp: new Date().toISOString()

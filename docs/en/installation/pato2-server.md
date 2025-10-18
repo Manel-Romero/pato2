@@ -209,7 +209,7 @@ ip addr show wlan0
 
 ```bash
 # Navigate to project directory
-cd ~/Pato2_TRAE/pato2-server
+cd ~/Pato2/pato2-server
 
 # Start server
 npm start
@@ -257,7 +257,7 @@ npm install -g pm2
      apps: [{
        name: 'pato2-server',
        script: 'server.js',
-       cwd: '/data/data/com.termux/files/home/Pato2_TRAE/pato2-server',
+       cwd: '/data/data/com.termux/files/home/Pato2/pato2-server',
        instances: 1,
        exec_mode: 'fork',
        env: {
@@ -342,7 +342,7 @@ iptables -A INPUT -p tcp --dport 5001:65535 -j DROP
    ~/duckdns/duck.sh
    
    # Start Pato2 server
-   cd ~/Pato2_TRAE/pato2-server
+   cd ~/Pato2/pato2-server
    pm2 resurrect
    ```
 
@@ -411,7 +411,7 @@ chmod +x health-check.sh
 
 # Add to crontab (every 5 minutes)
 crontab -e
-# Add: */5 * * * * ~/Pato2_TRAE/pato2-server/health-check.sh >> ~/health-check.log 2>&1
+# Add: */5 * * * * ~/Pato2/pato2-server/health-check.sh >> ~/health-check.log 2>&1
 ```
 
 ## Troubleshooting
@@ -533,16 +533,3 @@ pm2 status
 pm2 startup
 pm2 save
 ```
-
-## Next Steps
-
-1. **[Install Host Agent](host-agent.md)** on your PC
-2. **[Configure Google Drive](google-drive.md)** for backups
-3. **[Read User Guide](../user-guide/player-guide.md)**
-4. **[Advanced Configuration](../configuration/advanced.md)**
-
-## Support
-
-- **Documentation**: [docs.pato2.example.com](https://docs.pato2.example.com)
-- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
-- **Community**: [Discord Server](#)

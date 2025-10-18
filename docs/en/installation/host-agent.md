@@ -158,14 +158,9 @@ LOG_LEVEL=INFO
    cd minecraft-server
    ```
 
-2. **Download server** (example with 1.20.4):
-   ```bash
-   # Windows
-   curl -O https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar
-
-   # Linux/macOS
-   wget https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar
-   ```
+2. **Download server**:
+   [Download from PaperMC](https://papermc.io/downloads/paper)
+   Rename the downloaded file to `server.jar` and add it to the `minecraft-server` directory.
 
 3. **Accept EULA**:
    ```bash
@@ -238,15 +233,15 @@ python host_agent.py
 2. **Install service**:
    ```cmd
    # Open CMD as administrator
-   cd C:\path\to\Pato2_TRAE\host-agent
+   cd C:\path\to\Pato2\host-agent
    
    # Install service
    nssm install Pato2HostAgent
    
    # Configure service
    nssm set Pato2HostAgent Application "C:\path\to\python.exe"
-   nssm set Pato2HostAgent AppParameters "C:\path\to\Pato2_TRAE\host-agent\host_agent.py"
-   nssm set Pato2HostAgent AppDirectory "C:\path\to\Pato2_TRAE\host-agent"
+   nssm set Pato2HostAgent AppParameters "C:\path\to\Pato2\host-agent\host_agent.py"
+   nssm set Pato2HostAgent AppDirectory "C:\path\to\Pato2\host-agent"
    nssm set Pato2HostAgent DisplayName "Pato2 Host Agent"
    nssm set Pato2HostAgent Description "Host agent for Pato2 system"
    
@@ -285,9 +280,9 @@ python host_agent.py
    [Service]
    Type=simple
    User=your_user
-   WorkingDirectory=/home/your_user/Pato2_TRAE/host-agent
-   Environment=PATH=/home/your_user/Pato2_TRAE/host-agent/venv/bin
-   ExecStart=/home/your_user/Pato2_TRAE/host-agent/venv/bin/python host_agent.py
+   WorkingDirectory=/home/your_user/Pato2/host-agent
+   Environment=PATH=/home/your_user/Pato2/host-agent/venv/bin
+   ExecStart=/home/your_user/Pato2/host-agent/venv/bin/python host_agent.py
    Restart=always
    RestartSec=10
    
@@ -331,10 +326,10 @@ python host_agent.py
        <key>ProgramArguments</key>
        <array>
            <string>/usr/local/bin/python3</string>
-           <string>/Users/your_user/Pato2_TRAE/host-agent/host_agent.py</string>
+           <string>/Users/your_user/Pato2/host-agent/host_agent.py</string>
        </array>
        <key>WorkingDirectory</key>
-       <string>/Users/your_user/Pato2_TRAE/host-agent</string>
+       <string>/Users/your_user/Pato2/host-agent</string>
        <key>RunAtLoad</key>
        <true/>
        <key>KeepAlive</key>
@@ -362,7 +357,7 @@ python host_agent.py
 ```batch
 REM start-host.bat
 @echo off
-cd /d "C:\path\to\Pato2_TRAE\host-agent"
+cd /d "C:\path\to\Pato2\host-agent"
 call venv\Scripts\activate
 python host_agent.py
 pause
@@ -388,7 +383,7 @@ pause
 ```bash
 #!/bin/bash
 # start-host.sh
-cd ~/Pato2_TRAE/host-agent
+cd ~/Pato2/host-agent
 source venv/bin/activate
 python host_agent.py
 
@@ -531,16 +526,3 @@ python host_agent.py --check-config
 # Test backup (if configured)
 python host_agent.py --test-backup
 ```
-
-## Next Steps
-
-1. **[Configure Google Drive](google-drive.md)** for automatic backups
-2. **[Configure advanced networking](network-setup.md)** if necessary
-3. **[Read host manual](../user-guide/host-guide.md)**
-4. **[Configure multiple hosts](../configuration/advanced.md)** if you have multiple PCs
-
-## Support
-
-- **Documentation**: [docs.pato2.example.com](https://docs.pato2.example.com)
-- **Issues**: [GitHub Issues](https://github.com/Manel-Romero/pato2/issues)
-- **Community**: [Discord Server](#)

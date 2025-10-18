@@ -13,10 +13,6 @@ Complete guide to connect and play on Pato2 servers.
    - **Server address**: `pato2.duckdns.org:25565`
 4. **Connect**
 
-### From Minecraft Launcher (Official)
-- Recommended version: 1.20.x or higher
-- Compatible mods: Forge, Fabric (depending on server configuration)
-
 ## Connection from Minecraft Bedrock
 
 ### Minecraft Bedrock Edition (Mobile/Console)
@@ -131,96 +127,6 @@ You can check the server status at:
 1. **Restart your router**
 2. **Check firewall configuration**
 3. **Contact administrator**
-
-## Server Information
-
-### Useful Commands
-
-```
-/help                    # List of available commands
-/list                    # Connected players
-/spawn                   # Return to spawn
-/home                    # Go to your home (if configured)
-/tpa <player>           # Request teleport
-/msg <player> <message> # Private message
-```
-
-### General Rules
-
-- **Respect**: Treat other players with respect
-- **No griefing**: Don't destroy other players' builds
-- **No spam**: Avoid repetitive messages in chat
-- **No hacks**: Use of modified clients prohibited
-
-## Best Practices
-
-### For optimal experience
-
-1. **Stable connection**: Use wired internet when possible
-2. **Correct version**: Keep Minecraft updated
-3. **Graphics settings**: Adjust according to your hardware
-4. **Personal backup**: Take screenshots of your important builds
-
-### Communication
-
-1. **In-game chat**: For general communication
-2. **Discord**: For out-of-game communication (if available)
-3. **Web panel**: To check server status
-
-### Report problems
-
-1. **Describe the problem** clearly
-2. **Include screenshots** if possible
-3. **Mention your Minecraft version**
-4. **Contact administrator** through appropriate channel
-
-## Community
-
-### Communication Channels
-
-- **In-game chat**: Main communication
-- **Discord**: [Discord server link](#)
-- **Forum**: [Community forum link](#)
-
-### Events and Activities
-
-- **Community builds**: Group projects
-- **Competitions**: Special events
-- **Tours**: Visits to featured builds
-
-## Support
-
-### Contact Administrators
-
-- **In-game**: Use `/msg <admin> <message>`
-- **Discord**: Direct message or support channel
-- **Email**: [admin@pato2.example.com](#)
-
-### Technical Information
-
-- **Status panel**: `http://pato2.duckdns.org:5000`
-- **Documentation**: [docs.pato2.example.com](#)
-- **GitHub**: [github.com/Manel-Romero/pato2/issues](https://github.com/Manel-Romero/pato2/issues)
-
-### Support Hours
-
-- **Monday to Friday**: 6:00 PM - 10:00 PM
-- **Weekends**: 10:00 AM - 2:00 PM and 6:00 PM - 10:00 PM
-- **Emergencies**: Contact via Discord
-
-## System Updates
-
-### Notifications
-
-- **In-game**: Automatic messages about maintenance
-- **Discord**: Update announcements
-- **Web panel**: Real-time status
-
-### During updates
-
-- **Temporary disconnection**: Normal during updates
-- **Automatic backup**: Your progress is protected
-- **Estimated time**: Usually 5-15 minutes
 
 ## Enjoy playing!
 
