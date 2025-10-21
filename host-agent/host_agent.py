@@ -20,6 +20,7 @@ import psutil
 
 import requests
 import websocket
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 from backup_manager import BackupManager
@@ -80,7 +81,20 @@ class HostAgent:
             'reconnect_delay': int(os.getenv('RECONNECT_DELAY_SECONDS', '5')),
             'max_reconnect_attempts': int(os.getenv('MAX_RECONNECT_ATTEMPTS', '10')),
         }
-        
+
+        # Resolve Pato2 endpoint to IP address once
+        parsed_url = urlparse(self.config['pato2_endpoint'])
+        hostname = parsed_url.hostname
+        if hostname:
+            try:
+                self.pato2_ip = socket.gethostbyname(hostname)
+                self.logger.info(f"Resolved Pato2 endpoint {hostname} to IP {self.pato2_ip}")
+            except socket.gaierror as e:
+                self.logger.error(f"Could not resolve Pato2 endpoint {hostname}: {e}")
+                self.pato2_ip = None
+        else:
+            self.pato2_ip = None
+
         # Validate required config
         if not self.config['host_token']:
             raise ValueError("HOST_TOKEN environment variable is required")
@@ -97,8 +111,16 @@ class HostAgent:
         try:
             endpoint_info = f"{socket.gethostname()}:{self.config['minecraft_port']}"
             
+            
+            # Use the resolved IP address for requests
+            if self.pato2_ip:
+                parsed_url = urlparse(self.config['pato2_endpoint'])
+                base_url = f"http://{self.pato2_ip}:{parsed_url.port}"
+            else:
+                base_url = self.config['pato2_endpoint']
+
             response = requests.post(
-                f"{self.config['pato2_endpoint']}/api/host/offer",
+                f"{base_url}/api/host/offer",
                 json={
                     'token': self.config['host_token'],
                     'endpoint': endpoint_info
@@ -135,8 +157,16 @@ class HostAgent:
             minecraft_running = self.minecraft_manager.is_server_running()
             minecraft_ready = self.minecraft_manager.is_server_ready()
             
+            
+            # Use the resolved IP address for requests
+            if self.pato2_ip:
+                parsed_url = urlparse(self.config['pato2_endpoint'])
+                base_url = f"http://{self.pato2_ip}:{parsed_url.port}"
+            else:
+                base_url = self.config['pato2_endpoint']
+
             response = requests.post(
-                f"{self.config['pato2_endpoint']}/api/host/heartbeat",
+                f"{base_url}/api/host/heartbeat",
                 json={
                     'token': self.config['host_token'],
                     'leaseId': self.lease_id,
@@ -168,8 +198,16 @@ class HostAgent:
             return
             
         try:
+            
+            # Use the resolved IP address for requests
+            if self.pato2_ip:
+                parsed_url = urlparse(self.config['pato2_endpoint'])
+                base_url = f"http://{self.pato2_ip}:{parsed_url.port}"
+            else:
+                base_url = self.config['pato2_endpoint']
+
             response = requests.post(
-                f"{self.config['pato2_endpoint']}/api/host/end",
+                f"{base_url}/api/host/end",
                 json={'token': self.config['host_token']},
                 timeout=10
             )
@@ -190,7 +228,12 @@ class HostAgent:
             self.logger.error("Cannot connect WebSocket without lease ID")
             return False
             
-        ws_url = f"{self.config['pato2_endpoint'].replace('http', 'ws')}/ws/host?token={self.config['host_token']}&leaseId={self.lease_id}"
+        # Use the resolved IP address for WebSocket connection
+        if self.pato2_ip:
+            parsed_url = urlparse(self.config['pato2_endpoint'])
+            ws_url = f"ws://{self.pato2_ip}:{parsed_url.port}/ws/host?token={self.config['host_token']}&leaseId={self.lease_id}"
+        else:
+            ws_url = f"{self.config['pato2_endpoint'].replace('http', 'ws')}/ws/host?token={self.config['host_token']}&leaseId={self.lease_id}"
         
         self.logger.info(f"Connecting to WebSocket: {ws_url}")
         
