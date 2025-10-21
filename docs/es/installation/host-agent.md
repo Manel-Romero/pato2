@@ -117,37 +117,45 @@ pip3 --version
 ### Configuración Básica
 
 ```env
-# Conexión a Pato2
-PATO2_HOST=pato2.duckdns.org
-PATO2_PORT=5000
-PATO2_TOKEN=tu_host_token_compartido
+# Pato2 Host Agent Configuration
+# Copy this file to .env and configure your values
 
-# Información del host
-HOST_NAME=MiPC-Gaming
-HOST_DESCRIPTION=PC Gaming con RTX 4070
+# Connection to Pato2 Server
+HOST_TOKEN=your_shared_token_for_hosts_change_this_to_match_server
+PATO2_ENDPOINT=http://pato2.duckdns.org:5000
 
-# Servidor Minecraft
-MINECRAFT_DIR=./minecraft-server
+# Minecraft Server Configuration
+MINECRAFT_DIR=C:\Users\YourUser\minecraft_server
 MINECRAFT_PORT=25565
-MINECRAFT_JAR=server.jar
-MINECRAFT_WORLD=world
-MINECRAFT_JAVA_ARGS=-Xmx4G -Xms2G
+SERVER_JAR=server.jar
+WORLD_NAME=world
 
-# Google Drive (Opcional)
-GOOGLE_DRIVE_FOLDER_ID=tu_folder_id_de_google_drive
-GOOGLE_CLIENT_ID=tu_client_id
-GOOGLE_CLIENT_SECRET=tu_client_secret
-GOOGLE_REFRESH_TOKEN=tu_refresh_token
+# Java Configuration for Minecraft Server
+JAVA_ARGS=-Xmx4G -Xms2G -XX:+UseG1GC
 
-# Configuración de backups
-BACKUP_PATH=./backups
-BACKUP_INTERVAL=3600  # 1 hora en segundos
-BACKUP_RETENTION=7    # Días
+# Google Drive Backup Configuration
+GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id_here
+GOOGLE_DRIVE_CLIENT_ID=your_google_client_id_here
+GOOGLE_DRIVE_CLIENT_SECRET=your_google_client_secret_here
+GOOGLE_DRIVE_REFRESH_TOKEN=your_google_refresh_token_here
 
-# Sistema
-HEARTBEAT_INTERVAL=30  # segundos
-RECONNECT_DELAY=5      # segundos
+# Backup Settings
+BACKUPS_PATH=C:\Users\YourUser\minecraft_backups
+BACKUP_INTERVAL_HOURS=24
+BACKUP_RETENTION_DAYS=7
+
+# System Configuration
+HEARTBEAT_INTERVAL_SECONDS=15
+RECONNECT_DELAY_SECONDS=5
+MAX_RECONNECT_ATTEMPTS=10
+
+# Logging
 LOG_LEVEL=INFO
+
+# Optional: Advanced Settings
+# CONNECTION_TIMEOUT=30
+# WEBSOCKET_PING_INTERVAL=30
+# MINECRAFT_STARTUP_TIMEOUT=120
 ```
 
 ### Configuración del Servidor Minecraft
