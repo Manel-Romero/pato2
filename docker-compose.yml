@@ -10,6 +10,7 @@ services:
     ports:
       - "5000:5000"    # Web panel
       - "25565:25565"  # Minecraft proxy
+      - "19132:19132/udp" # Bedrock UDP proxy
     environment:
       - NODE_ENV=production
       - DOMAIN=${DOMAIN:-pato2.duckdns.org}
