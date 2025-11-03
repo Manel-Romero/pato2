@@ -57,7 +57,7 @@ python host_agent.py
 
 ## Variables de Entorno
 
-Ver [config/.env.example](config/.env.example) para comprender la estructura esperada.
+Ver [host-agent/.env.example](host-agent/.env.example) y [pato2-server/.env.example](pato2-server/.env.example) para comprender la estructura esperada.
 
 ## Licencia
 
