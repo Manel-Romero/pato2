@@ -16,7 +16,7 @@ import shutil
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from googleapiclient.errors import HttpError
 
 class BackupManager:
@@ -103,11 +103,22 @@ class BackupManager:
             return False
     
     def _create_local_backup(self) -> Optional[str]:
-        """Create a local ZIP backup of the Minecraft world"""
+        """Create a local ZIP backup with worlds, plugins y archivos clave"""
         try:
-            world_dir = os.path.join(self.minecraft_dir, 'world')
-            if not os.path.exists(world_dir):
-                self.logger.error(f"World directory not found: {world_dir}")
+            # Detectar mundos (principal y dimensiones)
+            world_name = os.getenv('WORLD_NAME', 'world')
+            candidate_worlds = [
+                world_name,
+                f"{world_name}_nether",
+                f"{world_name}_the_end"
+            ]
+            world_dirs = []
+            for w in candidate_worlds:
+                p = os.path.join(self.minecraft_dir, w)
+                if os.path.exists(p):
+                    world_dirs.append((p, w))
+            if not world_dirs:
+                self.logger.error("No se encontraron directorios de mundo para respaldar")
                 return None
             
             # Generate backup filename with timestamp
@@ -119,8 +130,14 @@ class BackupManager:
             
             # Create ZIP file
             with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                # Add world directory
-                self._add_directory_to_zip(zipf, world_dir, 'world')
+                # Añadir directorios de mundos
+                for dir_path, arc_name in world_dirs:
+                    self._add_directory_to_zip(zipf, dir_path, arc_name)
+                
+                # Añadir plugins si existen
+                plugins_dir = os.path.join(self.minecraft_dir, 'plugins')
+                if os.path.exists(plugins_dir):
+                    self._add_directory_to_zip(zipf, plugins_dir, 'plugins')
                 
                 # Add server properties and other important files
                 important_files = [
@@ -156,7 +173,12 @@ class BackupManager:
             for file in files:
                 file_path = os.path.join(root, file)
                 arc_path = os.path.join(arc_name, os.path.relpath(file_path, dir_path))
-                zipf.write(file_path, arc_path)
+                try:
+                    zipf.write(file_path, arc_path)
+                except PermissionError as e:
+                    self.logger.warning(f"Skipping locked file during backup: {file_path} ({e})")
+                except Exception as e:
+                    self.logger.warning(f"Failed to add file to backup: {file_path} ({e})")
     
     def _upload_to_drive(self, backup_file: str) -> bool:
         """Upload backup file to Google Drive"""
@@ -280,6 +302,40 @@ class BackupManager:
         except Exception as e:
             self.logger.error(f"Error downloading backup: {e}")
             return False
+
+    def download_latest_backup(self) -> Optional[str]:
+        """Download the most recent backup from Google Drive into backups_path"""
+        try:
+            if not self.drive_service:
+                self.logger.error("Google Drive service not available")
+                return None
+
+            backups = self.list_backups()
+            if not backups:
+                self.logger.info("No hay backups disponibles en Google Drive")
+                return None
+
+            latest = backups[0]
+            filename = latest.get('name', 'backup.zip')
+            download_path = os.path.join(self.backups_path, filename)
+
+            self.logger.info(f"Descargando último backup: {filename}")
+
+            request = self.drive_service.files().get_media(fileId=latest['id'])
+            with open(download_path, 'wb') as f:
+                downloader = MediaIoBaseDownload(f, request)
+                done = False
+                while not done:
+                    status, done = downloader.next_chunk()
+                    if status:
+                        self.logger.debug(f"Progreso de descarga: {int(status.progress() * 100)}%")
+
+            self.logger.info(f"Backup descargado correctamente: {download_path}")
+            return download_path
+
+        except Exception as e:
+            self.logger.error(f"Error al descargar el último backup: {e}")
+            return None
     
     def restore_backup(self, backup_file: str) -> bool:
         """Restore a backup to the Minecraft directory"""

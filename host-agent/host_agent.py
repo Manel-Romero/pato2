@@ -27,7 +27,7 @@ from backup_manager import BackupManager
 from minecraft_manager import MinecraftManager
 
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path='.env')
 
 class HostAgent:
     def __init__(self):
@@ -41,6 +41,7 @@ class HostAgent:
         self.connections: Dict[str, socket.socket] = {}
         self.udp_connections: Dict[str, socket.socket] = {}
         self.udp_recv_threads: Dict[str, threading.Thread] = {}
+        self.exit_backup_done: bool = False
         
         # Managers
         self.minecraft_manager = MinecraftManager(
@@ -80,6 +81,14 @@ class HostAgent:
             'heartbeat_interval': int(os.getenv('HEARTBEAT_INTERVAL_SECONDS', '15')),
             'reconnect_delay': int(os.getenv('RECONNECT_DELAY_SECONDS', '5')),
             'max_reconnect_attempts': int(os.getenv('MAX_RECONNECT_ATTEMPTS', '10')),
+            # Google Drive credentials
+            'google_drive_client_id': os.getenv('GOOGLE_CLIENT_ID'),
+            'google_drive_client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
+            'google_drive_refresh_token': os.getenv('GOOGLE_REFRESH_TOKEN'),
+            'google_drive_folder_id': os.getenv('GOOGLE_DRIVE_FOLDER_ID'),
+            # Backup settings
+            'backup_interval_hours': max(1, int(int(os.getenv('BACKUP_INTERVAL', '3600').split()[0]) / 3600)),
+            'backup_retention_days': int(os.getenv('BACKUP_RETENTION', '7').split()[0]),
         }
 
         # Resolve Pato2 endpoint to IP address once
@@ -577,6 +586,12 @@ class HostAgent:
         # Start Minecraft server if not running
         if not self.minecraft_manager.is_server_running():
             self.logger.info("Starting Minecraft server...")
+            # Descargar último backup (si existe) antes de iniciar el servidor
+            try:
+                self.logger.info("Descargando backup más reciente de Google Drive (si existe)...")
+                self.backup_manager.download_latest_backup()
+            except Exception as e:
+                self.logger.error(f"No se pudo descargar el backup más reciente: {e}")
             self.minecraft_manager.start_server()
         
         # Main loop
@@ -585,7 +600,26 @@ class HostAgent:
                 time.sleep(1)
         except KeyboardInterrupt:
             self.logger.info("Received keyboard interrupt")
-        
+            # Flush y detener servidor antes de crear backup
+            try:
+                if self.minecraft_manager.is_server_running():
+                    self.logger.info("Enviando save-all al servidor antes de backup...")
+                    self.minecraft_manager.send_command("save-all")
+                    time.sleep(2)
+                    self.logger.info("Deteniendo servidor Minecraft para liberar archivos...")
+                    self.minecraft_manager.stop_server()
+                    time.sleep(2)
+            except Exception as e:
+                self.logger.warning(f"No se pudo detener/flush el servidor antes del backup: {e}")
+            
+            # Al salir: crear y subir backup comprimiendo mundos y plugins
+            try:
+                self.logger.info("Creando y subiendo backup antes de salir...")
+                self.backup_manager.create_backup()
+                self.exit_backup_done = True
+            except Exception as e:
+                self.logger.error(f"No se pudo crear/subir el backup tras Ctrl+C: {e}")
+
         self.shutdown()
         return True
 
@@ -596,6 +630,27 @@ class HostAgent:
             
         self.logger.info("Shutting down Host Agent...")
         self.running = False
+        
+        # Detener el servidor antes de crear backup
+        try:
+            if self.minecraft_manager.is_server_running():
+                self.logger.info("Deteniendo servidor Minecraft en shutdown...")
+                # Intentar flush previo
+                self.minecraft_manager.send_command("save-all")
+                time.sleep(2)
+                self.minecraft_manager.stop_server()
+                time.sleep(2)
+        except Exception as e:
+            self.logger.warning(f"No se pudo detener el servidor en shutdown: {e}")
+        
+        # Crear y subir backup si no se hizo ya
+        if not self.exit_backup_done:
+            try:
+                self.logger.info("Creando y subiendo backup en shutdown...")
+                self.backup_manager.create_backup()
+                self.exit_backup_done = True
+            except Exception as e:
+                self.logger.warning(f"No se pudo crear/subir backup en shutdown: {e}")
         
         # Close all connections
         self.close_all_connections()

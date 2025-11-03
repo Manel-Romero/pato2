@@ -125,9 +125,15 @@ class MinecraftManager:
         try:
             if self.server_process:
                 # Send stop command
-                self.logger.info("Sending stop command to Minecraft server")
-                self.server_process.stdin.write("stop\n")
-                self.server_process.stdin.flush()
+                try:
+                    self.logger.info("Sending stop command to Minecraft server")
+                    if self.server_process.stdin:
+                        self.server_process.stdin.write("stop\n")
+                        self.server_process.stdin.flush()
+                    else:
+                        raise RuntimeError("server_process.stdin is None")
+                except Exception as e:
+                    self.logger.warning(f"Failed to send stop via stdin: {e}. Proceeding to terminate.")
                 
                 # Wait for graceful shutdown (up to 30 seconds)
                 for i in range(30):
