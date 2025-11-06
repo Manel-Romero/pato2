@@ -57,27 +57,31 @@ if %errorLevel% neq 0 (
 )
 
 REM Set installation directory
-set "INSTALL_DIR=%USERPROFILE%\Pato2"
-echo Installation directory: %INSTALL_DIR%
+set "DEFAULT_INSTALL_DIR=%USERPROFILE%\Pato2"
+set "INSTALL_DIR=%DEFAULT_INSTALL_DIR%"
+echo Installation directory set to: %INSTALL_DIR%
+set "PATO2_REPO_DIR=%INSTALL_DIR%\pato2"
 
-REM Create installation directory
-if exist "%INSTALL_DIR%" (
+REM Check if Pato2 directory already exists
+if exist "%PATO2_REPO_DIR%" (
     echo WARNING: Installation directory already exists.
     set /p OVERWRITE="Overwrite existing installation? (y/n): "
     if /i "!OVERWRITE!" neq "y" exit /b 1
     
     echo Backing up existing installation...
-    if exist "%INSTALL_DIR%.backup" rmdir /s /q "%INSTALL_DIR%.backup"
-    move "%INSTALL_DIR%" "%INSTALL_DIR%.backup" >nul 2>&1
+    if exist "%PATO2_REPO_DIR%.backup" rmdir /s /q "%PATO2_REPO_DIR%.backup"
+    move "%PATO2_REPO_DIR%" "%PATO2_REPO_DIR%.backup" >nul 2>&1
 )
 
-mkdir "%INSTALL_DIR%" 2>nul
+mkdir "%PATO2_REPO_DIR%" 2>nul
 
 REM Download or clone repository
 if %NO_GIT% equ 0 (
     echo Cloning repository...
-    cd /d "%USERPROFILE%"
-    git clone https://github.com/Manel-Romero/pato2.git
+    REM Change to the parent directory of where Pato2 will be installed
+    for %%i in ("%PATO2_REPO_DIR%") do set "PARENT_DIR=%%~dpi"
+    cd /d "%PARENT_DIR%"
+    git clone https://github.com/Manel-Romero/pato2.git "%PATO2_REPO_DIR%"
     if %errorLevel% neq 0 (
         echo ERROR: Failed to clone repository.
         pause
@@ -85,20 +89,20 @@ if %NO_GIT% equ 0 (
     )
 ) else (
     echo Please download the Pato2 project manually and extract it to:
-    echo %INSTALL_DIR%
+    echo %PATO2_REPO_DIR%
     echo.
     echo Press any key when ready...
     pause >nul
     
-    if not exist "%INSTALL_DIR%\host-agent" (
-        echo ERROR: host-agent directory not found in %INSTALL_DIR%
+    if not exist "%PATO2_REPO_DIR%\host-agent" (
+        echo ERROR: host-agent directory not found in %PATO2_REPO_DIR%
         pause
         exit /b 1
     )
 )
 
 REM Navigate to host-agent directory
-cd /d "%INSTALL_DIR%\host-agent"
+cd /d "%PATO2_REPO_DIR%\host-agent"
 if %errorLevel% neq 0 (
     echo ERROR: Could not access host-agent directory.
     pause
@@ -135,17 +139,107 @@ if %errorLevel% neq 0 (
 
 REM Create configuration file
 echo Setting up configuration...
+
+REM Ensure .env file exists
 if not exist ".env" (
     copy ".env.example" ".env" >nul
-    echo Created .env configuration file.
-    echo.
-    echo IMPORTANT: Please edit the .env file with your settings:
-    echo - HOST_TOKEN: Must match the token on Pato2 server
-    echo - PATO2_ENDPOINT: Your Pato2 server URL
-    echo - MINECRAFT_DIR: Path to your Minecraft server
-    echo - Google Drive credentials for backups
+    echo Created .env configuration file from .env.example.
 ) else (
-    echo .env file already exists, skipping creation.
+    echo .env file already exists. Will update existing values.
+)
+
+REM Function to update or add a variable in .env
+REM Usage: call :SET_ENV_VAR "VARIABLE_NAME" "Default Value"
+:SET_ENV_VAR
+set "VAR_NAME=%~1"
+set "DEFAULT_VALUE=%~2"
+
+REM Read current value from .env if it exists
+set "CURRENT_VALUE="
+for /f "tokens=1* delims==" %%a in ('findstr /b /c:"%VAR_NAME%=" .env 2^>nul') do (
+    set "CURRENT_VALUE=%%b"
+)
+
+if not "%CURRENT_VALUE%"=="" (
+    set /p INPUT_VALUE="Enter %VAR_NAME% (current: %CURRENT_VALUE%, default: %DEFAULT_VALUE%): "
+) else (
+    set /p INPUT_VALUE="Enter %VAR_NAME% (default: %DEFAULT_VALUE%): "
+)
+
+if "%INPUT_VALUE%"=="" (
+    set "FINAL_VALUE=%DEFAULT_VALUE%"
+) else (
+    set "FINAL_VALUE=%INPUT_VALUE%"
+)
+
+REM Use PowerShell to update or add the variable
+powershell -Command "
+    $filePath = '.\.env'
+    $varName = '%VAR_NAME%'
+    $varValue = '%FINAL_VALUE%'
+    $content = [System.IO.File]::ReadAllLines($filePath)
+    $found = $false
+    for ($i = 0; $i -lt $content.Length; $i++) {
+        if ($content[$i].StartsWith("$varName=")) {
+            $content[$i] = "$varName=$varValue"
+            $found = $true
+            break
+        }
+    }
+    if (-not $found) {
+        $content += "`n$varName=$varValue"
+    }
+    [System.IO.File]::WriteAllLines($filePath, $content)
+"
+echo Set %VAR_NAME%=%FINAL_VALUE%
+goto :eof
+
+REM Prompt for configuration values
+call :SET_ENV_VAR "HOST_TOKEN" "your_shared_token_for_hosts_change_this"
+call :SET_ENV_VAR "PATO2_ENDPOINT" "http://pato2.duckdns.org:5000"
+
+REM Default Minecraft directory to a common path relative to Pato2 installation
+set "DEFAULT_MINECRAFT_DIR=%PATO2_REPO_DIR%\minecraft_server"
+call :SET_ENV_VAR "MINECRAFT_DIR" "%DEFAULT_MINECRAFT_DIR%"
+
+call :SET_ENV_VAR "MINECRAFT_MIN_RAM" "1G"
+call :SET_ENV_VAR "MINECRAFT_MAX_RAM" "2G"
+
+call :SET_ENV_VAR "MINECRAFT_VIEW_DISTANCE" "14"
+call :SET_ENV_VAR "MINECRAFT_SIMULATION_DISTANCE" "14"
+
+REM Default Backups path to a common path relative to Pato2 installation
+set "DEFAULT_BACKUPS_PATH=%PATO2_REPO_DIR%\backups"
+call :SET_ENV_VAR "BACKUPS_PATH" "%DEFAULT_BACKUPS_PATH%"
+
+
+REM Update server.properties with configured values
+echo Updating server.properties...
+
+set "MINECRAFT_SERVER_PROPERTIES=%MINECRAFT_DIR%\server.properties"
+
+if exist "%MINECRAFT_SERVER_PROPERTIES%" (
+    REM Read values from .env
+    for /f "tokens=1* delims==" %%a in ('findstr /b /c:"MINECRAFT_VIEW_DISTANCE=" .env 2^>nul') do set "VIEW_DISTANCE=%%b"
+    for /f "tokens=1* delims==" %%a in ('findstr /b /c:"MINECRAFT_SIMULATION_DISTANCE=" .env 2^>nul') do set "SIMULATION_DISTANCE=%%b"
+
+    REM Use PowerShell to update server.properties
+    powershell -Command "
+        $filePath = '%MINECRAFT_SERVER_PROPERTIES%'
+        $content = [System.IO.File]::ReadAllLines($filePath)
+        for ($i = 0; $i -lt $content.Length; $i++) {
+            if ($content[$i].StartsWith("view-distance=")) {
+                $content[$i] = "view-distance=%VIEW_DISTANCE%"
+            }
+            if ($content[$i].StartsWith("simulation-distance=")) {
+                $content[$i] = "simulation-distance=%SIMULATION_DISTANCE%"
+            }
+        }
+        [System.IO.File]::WriteAllLines($filePath, $content)
+    "
+    echo Updated view-distance and simulation-distance in server.properties.
+) else (
+    echo WARNING: server.properties not found at "%MINECRAFT_SERVER_PROPERTIES%". Skipping update.
 )
 
 REM Create batch scripts for easy management
@@ -241,14 +335,16 @@ echo ========================================
 echo    Installation Complete!
 echo ========================================
 echo.
-echo Installation directory: %INSTALL_DIR%\host-agent
+echo Installation directory: %PATO2_REPO_DIR%\host-agent
 echo.
 echo NEXT STEPS:
-echo 1. Edit the .env file with your configuration:
-echo    - Set HOST_TOKEN to match your Pato2 server
-echo    - Set PATO2_ENDPOINT to your server URL
-echo    - Configure MINECRAFT_DIR path
-echo    - Set up Google Drive credentials for backups
+echo 1. Review the .env file for your configuration:
+echo    - HOST_TOKEN: Must match the token on Pato2 server
+echo    - PATO2_ENDPOINT: Your Pato2 server URL
+echo    - MINECRAFT_DIR: Path to your Minecraft server
+echo    - MINECRAFT_MIN_RAM / MINECRAFT_MAX_RAM: RAM allocation for Minecraft
+echo    - BACKUPS_PATH: Path for your backups
+echo    - Google Drive credentials for backups (if applicable)
 echo.
 echo 2. Ensure your Minecraft server is set up in the specified directory
 echo.
@@ -269,9 +365,9 @@ echo LOG FILE:
 echo %CD%\host_agent.log
 echo.
 echo For detailed setup instructions, see:
-echo %INSTALL_DIR%\docs\es\installation\host-agent.md
+echo %PATO2_REPO_DIR%\docs\es\installation\host-agent.md
 echo.
-echo Press any key to open the configuration file...
+echo Press any key to open the configuration file for final review...
 pause >nul
 
 REM Open configuration file for editing

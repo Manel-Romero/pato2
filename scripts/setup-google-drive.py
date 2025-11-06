@@ -176,40 +176,49 @@ def authenticate_google_drive(cred_path):
         return None
 
 def create_backup_folder(credentials):
-    """Create a backup folder in Google Drive."""
-    print_header("Creating Backup Folder")
-    
-    try:
-        from googleapiclient.discovery import build
-        from google.oauth2.credentials import Credentials
-        
-        # Create credentials object
-        creds = Credentials(
-            token=None,
-            refresh_token=credentials['refresh_token'],
-            token_uri='https://oauth2.googleapis.com/token',
-            client_id=credentials['client_id'],
-            client_secret=credentials['client_secret']
-        )
-        
-        # Build the service
-        service = build('drive', 'v3', credentials=creds)
-        
-        # Create folder
-        folder_metadata = {
-            'name': 'Pato2 Backups',
-            'mimeType': 'application/vnd.google-apps.folder'
-        }
-        
-        folder = service.files().create(body=folder_metadata, fields='id').execute()
-        folder_id = folder.get('id')
-        
-        print_success(f"Backup folder created with ID: {folder_id}")
-        return folder_id
-        
-    except Exception as e:
-        print_error(f"Failed to create backup folder: {e}")
-        return None
+    """Create a backup folder in Google Drive or use an existing one."""
+    print_header("Google Drive Folder Setup")
+
+    while True:
+        choice = input("Do you want to (1) Create a new Pato2 Backups folder or (2) Use an existing folder ID? (1/2): ").strip()
+        if choice == '1':
+            try:
+                from googleapiclient.discovery import build
+                from google.oauth2.credentials import Credentials
+
+                creds = Credentials(
+                    token=None,
+                    refresh_token=credentials['refresh_token'],
+                    token_uri='https://oauth2.googleapis.com/token',
+                    client_id=credentials['client_id'],
+                    client_secret=credentials['client_secret']
+                )
+                service = build('drive', 'v3', credentials=creds)
+
+                folder_metadata = {
+                    'name': 'Pato2 Backups',
+                    'mimeType': 'application/vnd.google-apps.folder'
+                }
+
+                folder = service.files().create(body=folder_metadata, fields='id').execute()
+                folder_id = folder.get('id')
+
+                print_success(f"New backup folder created with ID: {folder_id}")
+                return folder_id
+
+            except Exception as e:
+                print_error(f"Failed to create backup folder: {e}")
+                return None
+        elif choice == '2':
+            folder_id = input("Please enter the existing Google Drive Folder ID: ").strip()
+            if folder_id:
+                print_success(f"Using existing folder ID: {folder_id}")
+                return folder_id
+            else:
+                print_warning("Folder ID cannot be empty. Please try again.")
+        else:
+            print_warning("Invalid choice. Please enter '1' or '2'.")
+
 
 def generate_env_config(credentials, folder_id):
     """Generate .env configuration for Google Drive."""
