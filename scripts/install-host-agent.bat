@@ -26,20 +26,18 @@ if not exist "%ENV_FILE%" (
     echo Creating %ENV_FILE% >> "%LOG_FILE%"
     copy ".env.example" "%ENV_FILE%" >nul 2>&1
 )
-REM Use PowerShell to replace or append the key
-powershell -NoProfile -Command "\
-  $f='%CD%\\%ENV_FILE%'; \
-  $k='%_KEY%'; $v='%_VAL%'; \
-  if (!(Test-Path $f)) { '' | Set-Content $f }; \
-  $lines = Get-Content $f; \
-  $i = ($lines | Select-String -Pattern \"^$k=\" ).LineNumber; \
-  if ($i) { \
-    $lines[$i-1] = \"$k=$v\"; \
-    $lines | Set-Content $f; \
-  } else { Add-Content -Path $f -Value \"$k=$v\" }"
+set "TMP_PS=%TEMP%\pato2_setenv.ps1"
+>"%TMP_PS%" echo param([string]^$File,[string]^$Key,[string]^$Value)
+>>"%TMP_PS%" echo if (!(Test-Path ^$File)) { New-Item -ItemType File -Path ^$File -Force ^| Out-Null }
+>>"%TMP_PS%" echo ^$lines = Get-Content ^$File
+>>"%TMP_PS%" echo ^$pattern = '^' + [regex]::Escape(^$Key) + '='
+>>"%TMP_PS%" echo ^$idx = (^$lines ^| Select-String -Pattern ^$pattern).LineNumber
+>>"%TMP_PS%" echo if (^$idx) { ^$lines[^$idx-1] = "^$Key=^$Value"; ^$lines ^| Set-Content ^$File } else { Add-Content -Path ^$File -Value "^$Key=^$Value" }
+powershell -NoProfile -File "%TMP_PS%" "%CD%\%ENV_FILE%" "%_KEY%" "%_VAL%"
 if errorlevel 1 (
     echo ERROR: failed writing %_KEY% to %ENV_FILE% >> "%LOG_FILE%"
 )
+del "%TMP_PS%" >nul 2>&1
 goto :eof
 
 REM Helper: update property in server.properties
@@ -52,11 +50,15 @@ if not exist "%_PROP_FILE%" (
     echo WARNING: %_PROP_FILE% not found, skipping %_PROP_KEY% >> "%LOG_FILE%"
     goto :eof
 )
-powershell -NoProfile -Command "\
-  $f='%_PROP_FILE%'; $k='%_PROP_KEY%'; $v='%_PROP_VAL%'; \
-  $c = Get-Content $f; \
-  $idx = ($c | Select-String -Pattern \"^$k=\" ).LineNumber; \
-  if ($idx) { $c[$idx-1] = \"$k=$v\"; $c | Set-Content $f } else { Add-Content -Path $f -Value \"$k=$v\" }"
+set "TMP_PS=%TEMP%\pato2_setprop.ps1"
+>"%TMP_PS%" echo param([string]^$File,[string]^$Key,[string]^$Value)
+>>"%TMP_PS%" echo if (!(Test-Path ^$File)) { exit 0 }
+>>"%TMP_PS%" echo ^$lines = Get-Content ^$File
+>>"%TMP_PS%" echo ^$pattern = '^' + [regex]::Escape(^$Key) + '='
+>>"%TMP_PS%" echo ^$idx = (^$lines ^| Select-String -Pattern ^$pattern).LineNumber
+>>"%TMP_PS%" echo if (^$idx) { ^$lines[^$idx-1] = "^$Key=^$Value"; ^$lines ^| Set-Content ^$File } else { Add-Content -Path ^$File -Value "^$Key=^$Value" }
+powershell -NoProfile -File "%TMP_PS%" "%_PROP_FILE%" "%_PROP_KEY%" "%_PROP_VAL%"
+del "%TMP_PS%" >nul 2>&1
 goto :eof
 
 REM Colors (using PowerShell for colored output)
