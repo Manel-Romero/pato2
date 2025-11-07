@@ -242,32 +242,21 @@ if not exist "%CREDENTIALS_JSON%" (
     exit /b 1
 )
 
-REM Generar token de Google Drive usando credentials.json
+REM Generar token de Google Drive usando credentials.json (con Python inline)
 set "GOOGLE_DRIVE_CLIENT_ID="
 set "GOOGLE_DRIVE_CLIENT_SECRET="
 set "GOOGLE_DRIVE_REFRESH_TOKEN="
 call :log "Generando token de Google Drive con credentials.json..."
-> "%CD%\generate_drive_token_from_json.py" (
-    echo import sys, json
-    echo from google_auth_oauthlib.flow import InstalledAppFlow
-    echo SCOPES = ['https://www.googleapis.com/auth/drive.file']
-    echo cred_path = sys.argv[1]
-    echo with open(cred_path, 'r') as f:
-    echo 	data = json.load(f)
-    echo ci = data.get('installed', {}).get('client_id', '')
-    echo cs = data.get('installed', {}).get('client_secret', '')
-    echo flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
-    echo creds = flow.run_local_server(port=0)
-    echo print(f"CLIENT_ID={ci}")
-    echo print(f"CLIENT_SECRET={cs}")
-    echo print(f"REFRESH_TOKEN={creds.refresh_token or ''}")
+python -c "import sys,json; from google_auth_oauthlib.flow import InstalledAppFlow; SCOPES=['https://www.googleapis.com/auth/drive.file']; cred=sys.argv[1]; data=json.load(open(cred)); ci=data.get('installed',{}).get('client_id',''); cs=data.get('installed',{}).get('client_secret',''); flow=InstalledAppFlow.from_client_secrets_file(cred,SCOPES); creds=flow.run_local_server(port=0); print('CLIENT_ID='+ci); print('CLIENT_SECRET='+cs); print('REFRESH_TOKEN='+(creds.refresh_token or ''))" "%CREDENTIALS_JSON%" > "%CD%\drive_token_output.txt" 2>nul
+if %errorLevel% neq 0 (
+    call :log "ADVERTENCIA: Falló la generación del token. Revisa credentials.json o dependencias."
 )
-for /f "usebackq tokens=1,* delims==" %%A in (`python "%CD%\generate_drive_token_from_json.py" "%CREDENTIALS_JSON%"`) do (
+for /f "usebackq tokens=1,* delims==" %%A in ("%CD%\drive_token_output.txt") do (
     if "%%A"=="CLIENT_ID" set "GOOGLE_DRIVE_CLIENT_ID=%%B"
     if "%%A"=="CLIENT_SECRET" set "GOOGLE_DRIVE_CLIENT_SECRET=%%B"
     if "%%A"=="REFRESH_TOKEN" set "GOOGLE_DRIVE_REFRESH_TOKEN=%%B"
 )
-del /q "%CD%\generate_drive_token_from_json.py" 2>nul
+del /q "%CD%\drive_token_output.txt" 2>nul
 if "%GOOGLE_DRIVE_REFRESH_TOKEN%"=="" (
     call :log "ADVERTENCIA: No se obtuvo refresh token. Repite la autorización más tarde."
 ) else (
