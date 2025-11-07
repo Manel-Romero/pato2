@@ -1,111 +1,308 @@
 @echo off
-REM Pato2 Host Agent Installation Script for Windows
-REM This script automates the installation of Pato2 host agent on Windows
+REM Pato2 Host Agent One-Click Installer (Windows)
+REM - Opera sobre el repo local sin clonar
+REM - Configura .env en host-agent
+REM - Integra Google Drive sin crear carpetas
+REM - Valida rutas/permisos y genera logs
 
 setlocal enabledelayedexpansion
 
-REM Colors
-set "GREEN=[32m"
-set "RED=[31m"
-set "YELLOW=[33m"
-set "BLUE=[34m"
-set "NC=[0m"
+REM Paths
+set "REPO_ROOT=%~dp0.."
+for %%I in ("%REPO_ROOT%") do set "REPO_ROOT=%%~fI"
+set "HOST_AGENT_DIR=%REPO_ROOT%\host-agent"
+set "ENV_FILE=%HOST_AGENT_DIR%\.env"
+set "LOG_FILE=%HOST_AGENT_DIR%\install.log"
 
-REM Check if running as administrator
+echo ========================================
+echo    Instalador Pato2 Host Agent (Windows)
+echo ========================================
+echo Log: %LOG_FILE%
+echo.
+
+REM Admin check (necesario para algunas comprobaciones de permisos)
 net session >nul 2>&1
 if %errorLevel% neq 0 (
-    echo This script requires administrator privileges.
-    echo Please run as administrator.
+    echo Este instalador requiere privilegios de administrador.
+    echo Ejecuta como Administrador y vuelve a intentar.
+    echo [ERROR] Admin requerido >> "%LOG_FILE%"
     pause
     exit /b 1
 )
 
-echo.
-echo ========================================
-echo    Pato2 Host Agent Installation
-echo ========================================
-echo.
+REM Validar estructura de repo
+if not exist "%HOST_AGENT_DIR%" (
+    echo [ERROR] No se encuentra host-agent en %HOST_AGENT_DIR% >> "%LOG_FILE%"
+    echo ERROR: No se encuentra el directorio host-agent.
+    pause
+    exit /b 1
+)
 
-REM Check Python installation
-echo Checking Python installation...
+echo Directorio host-agent: %HOST_AGENT_DIR% >> "%LOG_FILE%"
+echo Directorio host-agent: %HOST_AGENT_DIR%
+
+REM Comprobar Python
+echo Comprobando Python...
 python --version >nul 2>&1
 if %errorLevel% neq 0 (
-    echo ERROR: Python is not installed or not in PATH.
-    echo Please install Python 3.7+ from https://python.org
-    echo Make sure to check "Add Python to PATH" during installation.
+    echo ERROR: Python no esta instalado o no esta en PATH.
+    echo Instala Python 3.8+ desde https://python.org (con "Add to PATH").
+    echo [ERROR] Python ausente >> "%LOG_FILE%"
     pause
     exit /b 1
 )
-
-REM Get Python version
 for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
+echo Python version: %PYTHON_VERSION% >> "%LOG_FILE%"
 echo Python version: %PYTHON_VERSION%
 
-REM Check if Git is installed
-echo Checking Git installation...
-git --version >nul 2>&1
-if %errorLevel% neq 0 (
-    echo WARNING: Git is not installed.
-    echo You can download it from https://git-scm.com/
-    echo Or download the project manually.
-    set /p CONTINUE="Continue without Git? (y/n): "
-    if /i "!CONTINUE!" neq "y" exit /b 1
-    set NO_GIT=1
-) else (
-    echo Git is available.
-    set NO_GIT=0
-)
-
-REM Set installation directory
-set "INSTALL_DIR=%USERPROFILE%\Pato2"
-echo Installation directory: %INSTALL_DIR%
-
-REM Create installation directory
-if exist "%INSTALL_DIR%" (
-    echo WARNING: Installation directory already exists.
-    set /p OVERWRITE="Overwrite existing installation? (y/n): "
-    if /i "!OVERWRITE!" neq "y" exit /b 1
-    
-    echo Backing up existing installation...
-    if exist "%INSTALL_DIR%.backup" rmdir /s /q "%INSTALL_DIR%.backup"
-    move "%INSTALL_DIR%" "%INSTALL_DIR%.backup" >nul 2>&1
-)
-
-mkdir "%INSTALL_DIR%" 2>nul
-
-REM Download or clone repository
-if %NO_GIT% equ 0 (
-    echo Cloning repository...
-    cd /d "%USERPROFILE%"
-    git clone https://github.com/Manel-Romero/pato2.git
+REM Crear venv (si no existe)
+cd /d "%HOST_AGENT_DIR%"
+if not exist "venv" (
+    echo Creando entorno virtual...
+    python -m venv venv
     if %errorLevel% neq 0 (
-        echo ERROR: Failed to clone repository.
-        pause
-        exit /b 1
-    )
-) else (
-    echo Please download the Pato2 project manually and extract it to:
-    echo %INSTALL_DIR%
-    echo.
-    echo Press any key when ready...
-    pause >nul
-    
-    if not exist "%INSTALL_DIR%\host-agent" (
-        echo ERROR: host-agent directory not found in %INSTALL_DIR%
+        echo [ERROR] Fallo creando venv >> "%LOG_FILE%"
+        echo ERROR: No se pudo crear el entorno virtual.
         pause
         exit /b 1
     )
 )
 
-REM Navigate to host-agent directory
-cd /d "%INSTALL_DIR%\host-agent"
+call venv\Scripts\activate.bat
 if %errorLevel% neq 0 (
-    echo ERROR: Could not access host-agent directory.
+    echo [ERROR] Fallo activando venv >> "%LOG_FILE%"
+    echo ERROR: No se pudo activar el entorno virtual.
     pause
     exit /b 1
 )
 
-echo Current directory: %CD%
+pip install --upgrade pip >nul 2>&1
+pip install -r requirements.txt >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [ERROR] Fallo instalando dependencias >> "%LOG_FILE%"
+    echo ERROR: No se pudieron instalar las dependencias.
+    pause
+    exit /b 1
+)
+
+REM Preparar .env real
+if not exist "%ENV_FILE%" (
+    copy ".env.example" "%ENV_FILE%" >nul
+    echo Creado .env desde plantilla. >> "%LOG_FILE%"
+)
+
+REM ===== Entrada de parámetros =====
+echo.
+echo Configuracion basica:
+set /p HOST_TOKEN="HOST_TOKEN (token del servidor Pato2): "
+if "!HOST_TOKEN!"=="" (
+    echo [ERROR] HOST_TOKEN vacio >> "%LOG_FILE%"
+    echo ERROR: HOST_TOKEN es obligatorio.
+    pause
+    exit /b 1
+)
+
+set /p PATO2_ENDPOINT="PATO2_ENDPOINT [http://pato2.duckdns.org:5000]: "
+if "!PATO2_ENDPOINT!"=="" set "PATO2_ENDPOINT=http://pato2.duckdns.org:5000"
+
+set /p MINECRAFT_DIR="Ruta del servidor Minecraft (ej. C:\Minecraft\server): "
+if not exist "!MINECRAFT_DIR!" (
+    echo [ERROR] Ruta Minecraft no valida >> "%LOG_FILE%"
+    echo ERROR: La ruta de Minecraft no existe.
+    pause
+    exit /b 1
+)
+
+set /p BACKUPS_PATH="Ruta para backups (ej. %HOST_AGENT_DIR%\backups): "
+if "!BACKUPS_PATH!"=="" set "BACKUPS_PATH=%HOST_AGENT_DIR%\backups"
+if not exist "!BACKUPS_PATH!" (
+    mkdir "!BACKUPS_PATH!" >nul 2>&1
+)
+echo Prueba de escritura en backups...
+echo test > "!BACKUPS_PATH!\write_test.tmp" 2>nul
+if not exist "!BACKUPS_PATH!\write_test.tmp" (
+    echo [ERROR] Permisos escritura backups >> "%LOG_FILE%"
+    echo ERROR: No se puede escribir en la ruta de backups.
+    pause
+    exit /b 1
+)
+del /q "!BACKUPS_PATH!\write_test.tmp" >nul 2>&1
+
+REM RAM configuracion
+echo.
+echo Configuracion de RAM:
+set /p MAX_RAM_GB="RAM maxima (GB) [4]: "
+if "!MAX_RAM_GB!"=="" set "MAX_RAM_GB=4"
+set /p MIN_RAM_GB="RAM minima (GB) [2]: "
+if "!MIN_RAM_GB!"=="" set "MIN_RAM_GB=2"
+set "JAVA_ARGS=-Xmx!MAX_RAM_GB!G -Xms!MIN_RAM_GB!G -XX:+UseG1GC"
+
+REM Distancias de servidor
+echo.
+echo Distancias de servidor (server.properties):
+set /p VIEW_DISTANCE="view-distance [10]: "
+if "!VIEW_DISTANCE!"=="" set "VIEW_DISTANCE=10"
+set /p SIMULATION_DISTANCE="simulation-distance (render) [10]: "
+if "!SIMULATION_DISTANCE!"=="" set "SIMULATION_DISTANCE=10"
+
+REM Backup settings
+echo.
+echo Configuracion de backups:
+set /p BACKUP_INTERVAL_HOURS="Intervalo de backups (horas) [24]: "
+if "!BACKUP_INTERVAL_HOURS!"=="" set "BACKUP_INTERVAL_HOURS=24"
+set /p BACKUP_RETENTION_DAYS="Retencion de backups (dias) [7]: "
+if "!BACKUP_RETENTION_DAYS!"=="" set "BACKUP_RETENTION_DAYS=7"
+
+REM Google Drive (sin crear carpeta nueva)
+echo.
+echo Configuracion Google Drive:
+set /p GOOGLE_DRIVE_FOLDER_ID="GOOGLE_DRIVE_FOLDER_ID existente: "
+if "!GOOGLE_DRIVE_FOLDER_ID!"=="" (
+    echo [ERROR] FOLDER_ID vacio >> "%LOG_FILE%"
+    echo ERROR: Debes proporcionar un Folder ID existente de Google Drive.
+    pause
+    exit /b 1
+)
+
+echo Instalando librerias OAuth de Google...
+pip install google-auth google-auth-oauthlib google-api-python-client >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [ERROR] Fallo instalando librerias Google >> "%LOG_FILE%"
+    echo ERROR: No se pudieron instalar librerias de Google.
+    pause
+    exit /b 1
+)
+
+set /p CRED_JSON_PATH="Ruta al JSON de credenciales OAuth (client_secret_xxx.json): "
+if not exist "!CRED_JSON_PATH!" (
+    echo [ERROR] Credenciales JSON no encontradas >> "%LOG_FILE%"
+    echo ERROR: Archivo de credenciales no existe.
+    pause
+    exit /b 1
+)
+
+REM Generar refresh token sin crear carpetas
+echo Generando token de actualizacion (se abrira el navegador)...
+set "TOKEN_OUT=%HOST_AGENT_DIR%\gdrive_creds.out.json"
+> "%HOST_AGENT_DIR%\gdrive_token_gen.py" echo import sys, json
+>> "%HOST_AGENT_DIR%\gdrive_token_gen.py" echo from google_auth_oauthlib.flow import InstalledAppFlow
+>> "%HOST_AGENT_DIR%\gdrive_token_gen.py" echo SCOPES = ['https://www.googleapis.com/auth/drive.file']
+>> "%HOST_AGENT_DIR%\gdrive_token_gen.py" echo flow = InstalledAppFlow.from_client_secrets_file(r"%CRED_JSON_PATH%", SCOPES)
+>> "%HOST_AGENT_DIR%\gdrive_token_gen.py" echo creds = flow.run_local_server(port=0)
+>> "%HOST_AGENT_DIR%\gdrive_token_gen.py" echo out = {'client_id': creds.client_id, 'client_secret': creds.client_secret, 'refresh_token': creds.refresh_token}
+>> "%HOST_AGENT_DIR%\gdrive_token_gen.py" echo print(json.dumps(out))
+
+python "%HOST_AGENT_DIR%\gdrive_token_gen.py" > "%TOKEN_OUT%"
+if %errorLevel% neq 0 (
+    echo [ERROR] Fallo autenticando Google Drive >> "%LOG_FILE%"
+    echo ERROR: No se pudo completar la autenticacion de Google.
+    del /q "%HOST_AGENT_DIR%\gdrive_token_gen.py" >nul 2>&1
+    pause
+    exit /b 1
+)
+del /q "%HOST_AGENT_DIR%\gdrive_token_gen.py" >nul 2>&1
+
+for /f "usebackq tokens=*" %%A in ("%TOKEN_OUT%") do set TOKEN_JSON=%%A
+del /q "%TOKEN_OUT%" >nul 2>&1
+
+for /f "usebackq tokens=2 delims=:," %%A in (`powershell -NoProfile -Command "$j = ConvertFrom-Json '%TOKEN_JSON%'; Write-Output \"client_id: $($j.client_id)\"; Write-Output \"client_secret: $($j.client_secret)\"; Write-Output \"refresh_token: $($j.refresh_token)\""`) do (
+    if not defined GOOGLE_CLIENT_ID set GOOGLE_CLIENT_ID=%%A
+)
+for /f "usebackq tokens=2 delims=:," %%A in (`powershell -NoProfile -Command "$j = ConvertFrom-Json '%TOKEN_JSON%'; Write-Output \"client_secret: $($j.client_secret)\""`) do (
+    if not defined GOOGLE_CLIENT_SECRET set GOOGLE_CLIENT_SECRET=%%A
+)
+for /f "usebackq tokens=2 delims=:," %%A in (`powershell -NoProfile -Command "$j = ConvertFrom-Json '%TOKEN_JSON%'; Write-Output \"refresh_token: $($j.refresh_token)\""`) do (
+    if not defined GOOGLE_REFRESH_TOKEN set GOOGLE_REFRESH_TOKEN=%%A
+)
+
+REM ===== Actualizar .env de host-agent =====
+echo Actualizando .env...
+powershell -NoProfile -Command ^
+  "$p='%ENV_FILE%'; ^
+   if (-not (Test-Path $p)) { New-Item -ItemType File -Path $p -Force | Out-Null }; ^
+   $c = Get-Content $p -Raw; ^
+   $envPairs = @{ ^
+     'HOST_TOKEN'='%HOST_TOKEN%'; ^
+     'PATO2_ENDPOINT'='%PATO2_ENDPOINT%'; ^
+     'MINECRAFT_DIR'='%MINECRAFT_DIR%'; ^
+     'BACKUPS_PATH'='%BACKUPS_PATH%'; ^
+     'BACKUP_INTERVAL_HOURS'='%BACKUP_INTERVAL_HOURS%'; ^
+     'BACKUP_RETENTION_DAYS'='%BACKUP_RETENTION_DAYS%'; ^
+     'JAVA_ARGS'='%JAVA_ARGS%'; ^
+     'GOOGLE_DRIVE_FOLDER_ID'='%GOOGLE_DRIVE_FOLDER_ID%'; ^
+     'GOOGLE_CLIENT_ID'='%GOOGLE_CLIENT_ID%'; ^
+     'GOOGLE_CLIENT_SECRET'='%GOOGLE_CLIENT_SECRET%'; ^
+     'GOOGLE_REFRESH_TOKEN'='%GOOGLE_REFRESH_TOKEN%' ^
+   }; ^
+   foreach ($k in $envPairs.Keys) { ^
+     if ($c -match "(?m)^$k=.*$") { $c = [regex]::Replace($c, "(?m)^$k=.*$", "$k=" + $envPairs[$k]) } ^
+     else { $c += "`r`n$k=" + $envPairs[$k] } ^
+   }; ^
+   Set-Content -Path $p -Value $c"
+if %errorLevel% neq 0 (
+    echo [ERROR] Fallo escribiendo .env >> "%LOG_FILE%"
+    echo ERROR: No se pudo actualizar el archivo .env.
+    pause
+    exit /b 1
+)
+echo .env actualizado correctamente. >> "%LOG_FILE%"
+
+REM ===== Actualizar server.properties =====
+set "SERVER_PROPERTIES=!MINECRAFT_DIR!\server.properties"
+if exist "!SERVER_PROPERTIES!" (
+    echo Actualizando server.properties...
+    powershell -NoProfile -Command ^
+      "$p='%SERVER_PROPERTIES%'; $c=Get-Content $p -Raw; ^
+       if ($c -match '(?m)^view-distance=') { $c = [regex]::Replace($c,'(?m)^view-distance=.*$','view-distance=%VIEW_DISTANCE%') } else { $c += "`r`nview-distance=%VIEW_DISTANCE%" }; ^
+       if ($c -match '(?m)^simulation-distance=') { $c = [regex]::Replace($c,'(?m)^simulation-distance=.*$','simulation-distance=%SIMULATION_DISTANCE%') } else { $c += "`r`nsimulation-distance=%SIMULATION_DISTANCE%" }; ^
+       Set-Content -Path $p -Value $c"
+    if %errorLevel% neq 0 (
+        echo [ERROR] Fallo actualizando server.properties >> "%LOG_FILE%"
+        echo WARNING: No se pudo actualizar server.properties.
+    ) else (
+        echo server.properties actualizado. >> "%LOG_FILE%"
+    )
+) else (
+    echo WARNING: server.properties no encontrado, se omite. >> "%LOG_FILE%"
+    echo Aviso: no se encontró server.properties en !MINECRAFT_DIR!.
+)
+
+REM Crear scripts de gestion
+echo Creando scripts de gestion...
+echo @echo off> start-host-agent.bat
+echo cd /d "%HOST_AGENT_DIR%">> start-host-agent.bat
+echo call venv\Scripts\activate.bat>> start-host-agent.bat
+echo python host_agent.py>> start-host-agent.bat
+echo pause>> start-host-agent.bat
+
+echo @echo off> status-host-agent.bat
+echo echo === Estado Pato2 Host Agent ===>> status-host-agent.bat
+echo tasklist /fi "IMAGENAME eq python.exe" /fo table>> status-host-agent.bat
+echo if exist "%HOST_AGENT_DIR%\host_agent.log" (>> status-host-agent.bat
+echo   powershell "Get-Content '%HOST_AGENT_DIR%\host_agent.log' -Tail 20">> status-host-agent.bat
+echo ) else (>> status-host-agent.bat
+echo   echo No hay log.>> status-host-agent.bat
+echo )>> status-host-agent.bat
+echo pause>> status-host-agent.bat
+
+echo @echo off> stop-host-agent.bat
+echo echo Deteniendo Pato2 Host Agent...>> stop-host-agent.bat
+echo taskkill /f /im python.exe 2^>nul>> stop-host-agent.bat
+echo echo Host agent detenido.>> stop-host-agent.bat
+echo pause>> stop-host-agent.bat
+
+echo.
+echo ========================================
+echo   Instalacion completada correctamente
+echo ========================================
+echo .env y configuraciones aplicadas.
+echo Detalles en: %LOG_FILE%
+echo.
+echo Para iniciar: start-host-agent.bat
+echo Para estado:  status-host-agent.bat
+echo Para parar:   stop-host-agent.bat
+echo.
+pause
 
 REM Create virtual environment
 echo Creating Python virtual environment...
@@ -138,144 +335,15 @@ echo Setting up configuration...
 if not exist ".env" (
     copy ".env.example" ".env" >nul
     echo Created .env configuration file.
+    echo.
+    echo IMPORTANT: Please edit the .env file with your settings:
+    echo - HOST_TOKEN: Must match the token on Pato2 server
+    echo - PATO2_ENDPOINT: Your Pato2 server URL
+    echo - MINECRAFT_DIR: Path to your Minecraft server
+    echo - Google Drive credentials for backups
 ) else (
-    echo .env file already exists, will update values.
+    echo .env file already exists, skipping creation.
 )
-
-echo.
-echo === Interactive configuration ===
-echo Enter values; press Enter to keep defaults.
-
-set /p HOST_TOKEN="HOST_TOKEN (required): "
-if "%HOST_TOKEN%"=="" (
-    echo ERROR: HOST_TOKEN is required.
-    pause
-    exit /b 1
-)
-
-set /p PATO2_ENDPOINT="PATO2_ENDPOINT [http://pato2.duckdns.org:5000]: "
-if "%PATO2_ENDPOINT%"=="" set "PATO2_ENDPOINT=http://pato2.duckdns.org:5000"
-
-set /p MINECRAFT_DIR="Ruta al servidor de Minecraft (MINECRAFT_DIR): "
-if not exist "%MINECRAFT_DIR%" (
-    echo WARNING: La ruta no existe. Se creara al iniciar si es necesario.
-)
-
-REM Valores por defecto sin preguntar para simplificar
-set "SERVER_JAR=server.jar"
-set "WORLD_NAME=world"
-
-set /p BACKUPS_PATH="Ruta de backups (BACKUPS_PATH) [%%USERPROFILE%%\MinecraftBackups]: "
-if "%BACKUPS_PATH%"=="" set "BACKUPS_PATH=%USERPROFILE%\MinecraftBackups"
-
-set /p MAX_RAM_GB="RAM maxima en GB (Xmx) [4]: "
-if "%MAX_RAM_GB%"=="" set "MAX_RAM_GB=4"
-set /p MIN_RAM_GB="RAM minima en GB (Xms) [2]: "
-if "%MIN_RAM_GB%"=="" set "MIN_RAM_GB=2"
-set "JAVA_ARGS=-Xmx%MAX_RAM_GB%G -Xms%MIN_RAM_GB%G -XX:+UseG1GC"
-
-set /p VIEW_DISTANCE="View distance (server.properties) [10]: "
-if "%VIEW_DISTANCE%"=="" set "VIEW_DISTANCE=10"
-set /p SIMULATION_DISTANCE="Simulation/Render distance (server.properties) [10]: "
-if "%SIMULATION_DISTANCE%"=="" set "SIMULATION_DISTANCE=10"
-
-echo.
-echo === Google Drive (integrado) ===
-echo Intentando detectar automaticamente credentials.json...
-set "GDRIVE_CRED_PATH="
-if exist "%CD%\credentials.json" set "GDRIVE_CRED_PATH=%CD%\credentials.json"
-if "%GDRIVE_CRED_PATH%"=="" if exist "%MINECRAFT_DIR%\credentials.json" set "GDRIVE_CRED_PATH=%MINECRAFT_DIR%\credentials.json"
-if "%GDRIVE_CRED_PATH%"=="" (
-    echo No se encontro credentials.json automaticamente.
-    set /p GDRIVE_CRED_PATH="Ruta a credentials.json (Enter para omitir): "
-)
-set /p GOOGLE_DRIVE_FOLDER_ID="Google Drive Folder ID (Enter para omitir): "
-set /p GOOGLE_REFRESH_TOKEN="Google Refresh Token (Enter para omitir): "
-
-REM Extraer client_id y client_secret del JSON si existe
-set "GOOGLE_CLIENT_ID="
-set "GOOGLE_CLIENT_SECRET="
-if not "%GDRIVE_CRED_PATH%"=="" (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $j=Get-Content '%GDRIVE_CRED_PATH%' | ConvertFrom-Json; if ($j.installed) { Write-Host ('CID=' + $j.installed.client_id); Write-Host ('CSECRET=' + $j.installed.client_secret) } elseif ($j.web) { Write-Host ('CID=' + $j.web.client_id); Write-Host ('CSECRET=' + $j.web.client_secret) } } catch { }" > tmp_gd.txt
-    for /f "tokens=1,2 delims==" %%A in (tmp_gd.txt) do (
-        if /i "%%A"=="CID" set "GOOGLE_CLIENT_ID=%%B"
-        if /i "%%A"=="CSECRET" set "GOOGLE_CLIENT_SECRET=%%B"
-    )
-    del tmp_gd.txt 2>nul
-)
-
-echo.
-echo Intentando generar automaticamente GOOGLE_REFRESH_TOKEN...
-if "%GOOGLE_REFRESH_TOKEN%"=="" if not "%GDRIVE_CRED_PATH%"=="" (
-  echo Se abrira el navegador para autorizar acceso a Google Drive.
-  echo Por favor, inicia sesion y acepta los permisos.
-  > gen_refresh.py echo import sys
-  >> gen_refresh.py echo from google_auth_oauthlib.flow import InstalledAppFlow
-  >> gen_refresh.py echo scopes = ['https://www.googleapis.com/auth/drive.file']
-  >> gen_refresh.py echo flow = InstalledAppFlow.from_client_secrets_file(sys.argv[1], scopes=scopes)
-  >> gen_refresh.py echo creds = flow.run_local_server(port=0)
-  >> gen_refresh.py echo print(creds.refresh_token or '')
-  python gen_refresh.py "%GDRIVE_CRED_PATH%" > tmp_refresh.txt
-  for /f "usebackq delims=" %%T in ("tmp_refresh.txt") do set "GOOGLE_REFRESH_TOKEN=%%T"
-  del gen_refresh.py 2>nul
-  del tmp_refresh.txt 2>nul
-  if "%GOOGLE_REFRESH_TOKEN%"=="" (
-    echo No se pudo generar el refresh token automaticamente.
-  ) else (
-    echo Refresh token generado correctamente.
-  )
-)
-
-echo.
-echo === Actualizando .env real del host-agent ===
-call :SetEnv HOST_TOKEN "%HOST_TOKEN%"
-call :SetEnv PATO2_ENDPOINT "%PATO2_ENDPOINT%"
-call :SetEnv MINECRAFT_DIR "%MINECRAFT_DIR%"
-call :SetEnv SERVER_JAR "%SERVER_JAR%"
-call :SetEnv WORLD_NAME "%WORLD_NAME%"
-call :SetEnv JAVA_ARGS "%JAVA_ARGS%"
-call :SetEnv BACKUPS_PATH "%BACKUPS_PATH%"
-
-REM Escribir ambas variantes para compatibilidad
-if not "%GOOGLE_CLIENT_ID%"=="" (
-  call :SetEnv GOOGLE_CLIENT_ID "%GOOGLE_CLIENT_ID%"
-  call :SetEnv GOOGLE_DRIVE_CLIENT_ID "%GOOGLE_CLIENT_ID%"
-)
-if not "%GOOGLE_CLIENT_SECRET%"=="" (
-  call :SetEnv GOOGLE_CLIENT_SECRET "%GOOGLE_CLIENT_SECRET%"
-  call :SetEnv GOOGLE_DRIVE_CLIENT_SECRET "%GOOGLE_CLIENT_SECRET%"
-)
-if not "%GOOGLE_REFRESH_TOKEN%"=="" (
-  call :SetEnv GOOGLE_REFRESH_TOKEN "%GOOGLE_REFRESH_TOKEN%"
-  call :SetEnv GOOGLE_DRIVE_REFRESH_TOKEN "%GOOGLE_REFRESH_TOKEN%"
-)
-if not "%GOOGLE_DRIVE_FOLDER_ID%"=="" (
-  call :SetEnv GOOGLE_DRIVE_FOLDER_ID "%GOOGLE_DRIVE_FOLDER_ID%"
-)
-
-REM Calcular y escribir intervalos/retencion (horas/dias y segundos)
-set /p BACKUP_INTERVAL_HOURS="Horas entre backups (BACKUP_INTERVAL_HOURS) [24]: "
-if "%BACKUP_INTERVAL_HOURS%"=="" set "BACKUP_INTERVAL_HOURS=24"
-set /p BACKUP_RETENTION_DAYS="Dias de retencion (BACKUP_RETENTION_DAYS) [7]: "
-if "%BACKUP_RETENTION_DAYS%"=="" set "BACKUP_RETENTION_DAYS=7"
-set /a BACKUP_INTERVAL=%BACKUP_INTERVAL_HOURS%*3600
-set /a BACKUP_RETENTION=%BACKUP_RETENTION_DAYS%
-call :SetEnv BACKUP_INTERVAL_HOURS "%BACKUP_INTERVAL_HOURS%"
-call :SetEnv BACKUP_RETENTION_DAYS "%BACKUP_RETENTION_DAYS%"
-call :SetEnv BACKUP_INTERVAL "%BACKUP_INTERVAL%"
-call :SetEnv BACKUP_RETENTION "%BACKUP_RETENTION%"
-
-echo.
-echo === Ajustando server.properties (view/simulation distance) ===
-if exist "%MINECRAFT_DIR%\server.properties" (
-  powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$p='%MINECRAFT_DIR%\server.properties'; $c=Get-Content $p; $u=$false; $c = $c -replace '^view-distance=.*', 'view-distance=%VIEW_DISTANCE%' -replace '^simulation-distance=.*', 'simulation-distance=%SIMULATION_DISTANCE%'; if (-not ($c -match '^view-distance=')) { $c += '\nview-distance=%VIEW_DISTANCE%'; $u=$true } if (-not ($c -match '^simulation-distance=')) { $c += '\nsimulation-distance=%SIMULATION_DISTANCE%'; $u=$true } Set-Content -Path $p -Value $c"
-) else (
-  echo view-distance=%VIEW_DISTANCE%> "%MINECRAFT_DIR%\server.properties"
-  echo simulation-distance=%SIMULATION_DISTANCE%>> "%MINECRAFT_DIR%\server.properties"
-)
-
-echo Configuration updated successfully.
 
 REM Create batch scripts for easy management
 echo Creating management scripts...
@@ -410,11 +478,3 @@ echo.
 echo Installation script completed.
 echo You can now start the host agent using start-host-agent.bat
 pause
-
-goto :eof
-
-:SetEnv
-REM Usage: call :SetEnv KEY VALUE
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$envPath='.env'; $key=$args[0]; $val=$args[1]; $exists=$false; if (Test-Path $envPath) { $lines=Get-Content $envPath; $new = foreach ($line in $lines) { if ($line -match "^$key=") { $exists=$true; \"$key=$val\" } else { $line } }; if ($exists) { Set-Content -Path $envPath -Value $new } else { Add-Content -Path $envPath -Value \"$key=$val\" } } else { Set-Content -Path $envPath -Value \"$key=$val\" }" %~1 %~2
-exit /b 0

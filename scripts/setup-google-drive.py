@@ -300,56 +300,46 @@ def main():
     print("=" * 50)
     print(f"{Colors.ENDC}")
     
-    print_info("Este script configurará Google Drive usando credenciales ya existentes")
-    print_info("No se crearán nuevas credenciales ni carpetas: solo se usará la ruta y el Folder ID")
+    print_info("This script will help you set up Google Drive backups for Pato2")
+    print_info("You'll need a Google account and about 10 minutes")
     
     if not input("\nDo you want to continue? (y/N): ").lower().startswith('y'):
         print_info("Setup cancelled")
         return
     
-    # Optional: Check dependencies (solo si se requiere parsing JSON)
+    # Check dependencies
     if not check_dependencies():
-        print_warning("Continuando: dependencias de Google no son estrictamente necesarias para leer JSON")
-    
-    # Obtener ruta del credentials.json existente
-    cred_path, cred_data = get_credentials_file()
-    
-    # Extraer client_id y client_secret
-    if 'installed' in cred_data:
-        client_id = cred_data['installed'].get('client_id')
-        client_secret = cred_data['installed'].get('client_secret')
-    elif 'web' in cred_data:
-        client_id = cred_data['web'].get('client_id')
-        client_secret = cred_data['web'].get('client_secret')
-    else:
-        print_error("Formato de credentials.json no reconocido")
         return
     
-    print_success(f"Client ID: {client_id}")
-    print_success(f"Client Secret: {client_secret}")
+    # Guide through Google Cloud Console setup
+    setup_google_cloud_console()
     
-    # Pedir Folder ID y Refresh Token ya existente
-    folder_id = input("Introduce tu GOOGLE_DRIVE_FOLDER_ID: ").strip()
-    refresh_token = input("Introduce tu GOOGLE_REFRESH_TOKEN (si ya lo tienes): ").strip()
+    # Get credentials file
+    cred_path, cred_data = get_credentials_file()
     
-    # Generar configuración .env (solo imprime y guarda en archivo auxiliar)
-    env_config = f"""
-GOOGLE_CLIENT_ID={client_id}
-GOOGLE_CLIENT_SECRET={client_secret}
-GOOGLE_REFRESH_TOKEN={refresh_token}
-GOOGLE_DRIVE_FOLDER_ID={folder_id}
-""".strip()
+    # Authenticate with Google Drive
+    credentials = authenticate_google_drive(cred_path)
+    if not credentials:
+        return
     
-    config_file = Path('.env.google-drive')
-    with open(config_file, 'w') as f:
-        f.write(env_config)
+    # Create backup folder
+    folder_id = create_backup_folder(credentials)
+    if not folder_id:
+        return
     
-    print_header("Configuración generada")
-    print_info("Añade estas líneas a tu .env real en host-agent:")
-    print(env_config)
-    print_success(f"Guardado en: {config_file.absolute()}")
-    print_info("No se han creado nuevas credenciales ni carpetas en Drive.")
-    print_info("Si no tienes refresh token, realiza el flujo OAuth fuera de este script.")
+    # Generate configuration
+    config_file = generate_env_config(credentials, folder_id)
+    
+    # Test backup functionality
+    if test_backup_functionality(credentials, folder_id):
+        print_header("Setup Complete!")
+        print_success("Google Drive backup is now configured for Pato2!")
+        print_info(f"Configuration saved to: {config_file}")
+        print_info("Copy the configuration to your main .env file")
+        print_info("Restart your Pato2 server to enable backups")
+    else:
+        print_error("Setup completed but backup test failed")
+        print_info("Check your configuration and try again")
 
 if __name__ == "__main__":
     try:
