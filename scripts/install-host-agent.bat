@@ -4,7 +4,7 @@ REM This script automates the installation of Pato2 host agent on Windows
 
 setlocal enabledelayedexpansion
 
-REM Colors (using PowerShell for colored output)
+REM Colors
 set "GREEN=[32m"
 set "RED=[31m"
 set "YELLOW=[33m"
@@ -57,31 +57,27 @@ if %errorLevel% neq 0 (
 )
 
 REM Set installation directory
-set "DEFAULT_INSTALL_DIR=%USERPROFILE%\Pato2"
-set "INSTALL_DIR=%DEFAULT_INSTALL_DIR%"
-echo Installation directory set to: %INSTALL_DIR%
-set "PATO2_REPO_DIR=%INSTALL_DIR%\pato2"
+set "INSTALL_DIR=%USERPROFILE%\Pato2"
+echo Installation directory: %INSTALL_DIR%
 
-REM Check if Pato2 directory already exists
-if exist "%PATO2_REPO_DIR%" (
+REM Create installation directory
+if exist "%INSTALL_DIR%" (
     echo WARNING: Installation directory already exists.
     set /p OVERWRITE="Overwrite existing installation? (y/n): "
     if /i "!OVERWRITE!" neq "y" exit /b 1
     
     echo Backing up existing installation...
-    if exist "%PATO2_REPO_DIR%.backup" rmdir /s /q "%PATO2_REPO_DIR%.backup"
-    move "%PATO2_REPO_DIR%" "%PATO2_REPO_DIR%.backup" >nul 2>&1
+    if exist "%INSTALL_DIR%.backup" rmdir /s /q "%INSTALL_DIR%.backup"
+    move "%INSTALL_DIR%" "%INSTALL_DIR%.backup" >nul 2>&1
 )
 
-mkdir "%PATO2_REPO_DIR%" 2>nul
+mkdir "%INSTALL_DIR%" 2>nul
 
 REM Download or clone repository
 if %NO_GIT% equ 0 (
     echo Cloning repository...
-    REM Change to the parent directory of where Pato2 will be installed
-    for %%i in ("%PATO2_REPO_DIR%") do set "PARENT_DIR=%%~dpi"
-    cd /d "%PARENT_DIR%"
-    git clone https://github.com/Manel-Romero/pato2.git "%PATO2_REPO_DIR%"
+    cd /d "%USERPROFILE%"
+    git clone https://github.com/Manel-Romero/pato2.git
     if %errorLevel% neq 0 (
         echo ERROR: Failed to clone repository.
         pause
@@ -89,20 +85,20 @@ if %NO_GIT% equ 0 (
     )
 ) else (
     echo Please download the Pato2 project manually and extract it to:
-    echo %PATO2_REPO_DIR%
+    echo %INSTALL_DIR%
     echo.
     echo Press any key when ready...
     pause >nul
     
-    if not exist "%PATO2_REPO_DIR%\host-agent" (
-        echo ERROR: host-agent directory not found in %PATO2_REPO_DIR%
+    if not exist "%INSTALL_DIR%\host-agent" (
+        echo ERROR: host-agent directory not found in %INSTALL_DIR%
         pause
         exit /b 1
     )
 )
 
 REM Navigate to host-agent directory
-cd /d "%PATO2_REPO_DIR%\host-agent"
+cd /d "%INSTALL_DIR%\host-agent"
 if %errorLevel% neq 0 (
     echo ERROR: Could not access host-agent directory.
     pause
@@ -139,108 +135,147 @@ if %errorLevel% neq 0 (
 
 REM Create configuration file
 echo Setting up configuration...
-
-REM Ensure .env file exists
 if not exist ".env" (
     copy ".env.example" ".env" >nul
-    echo Created .env configuration file from .env.example.
+    echo Created .env configuration file.
 ) else (
-    echo .env file already exists. Will update existing values.
+    echo .env file already exists, will update values.
 )
 
-REM Function to update or add a variable in .env
-REM Usage: call :SET_ENV_VAR "VARIABLE_NAME" "Default Value"
-:SET_ENV_VAR
-set "VAR_NAME=%~1"
-set "DEFAULT_VALUE=%~2"
+echo.
+echo === Interactive configuration ===
+echo Enter values; press Enter to keep defaults.
 
-REM Read current value from .env if it exists
-set "CURRENT_VALUE="
-for /f "tokens=1* delims==" %%a in ('findstr /b /c:"%VAR_NAME%=" .env 2^>nul') do (
-    set "CURRENT_VALUE=%%b"
+set /p HOST_TOKEN="HOST_TOKEN (required): "
+if "%HOST_TOKEN%"=="" (
+    echo ERROR: HOST_TOKEN is required.
+    pause
+    exit /b 1
 )
 
-if not "%CURRENT_VALUE%"=="" (
-    set /p INPUT_VALUE="Enter %VAR_NAME% (current: %CURRENT_VALUE%, default: %DEFAULT_VALUE%): "
+set /p PATO2_ENDPOINT="PATO2_ENDPOINT [http://pato2.duckdns.org:5000]: "
+if "%PATO2_ENDPOINT%"=="" set "PATO2_ENDPOINT=http://pato2.duckdns.org:5000"
+
+set /p MINECRAFT_DIR="Ruta al servidor de Minecraft (MINECRAFT_DIR): "
+if not exist "%MINECRAFT_DIR%" (
+    echo WARNING: La ruta no existe. Se creara al iniciar si es necesario.
+)
+
+REM Valores por defecto sin preguntar para simplificar
+set "SERVER_JAR=server.jar"
+set "WORLD_NAME=world"
+
+set /p BACKUPS_PATH="Ruta de backups (BACKUPS_PATH) [%%USERPROFILE%%\MinecraftBackups]: "
+if "%BACKUPS_PATH%"=="" set "BACKUPS_PATH=%USERPROFILE%\MinecraftBackups"
+
+set /p MAX_RAM_GB="RAM maxima en GB (Xmx) [4]: "
+if "%MAX_RAM_GB%"=="" set "MAX_RAM_GB=4"
+set /p MIN_RAM_GB="RAM minima en GB (Xms) [2]: "
+if "%MIN_RAM_GB%"=="" set "MIN_RAM_GB=2"
+set "JAVA_ARGS=-Xmx%MAX_RAM_GB%G -Xms%MIN_RAM_GB%G -XX:+UseG1GC"
+
+set /p VIEW_DISTANCE="View distance (server.properties) [10]: "
+if "%VIEW_DISTANCE%"=="" set "VIEW_DISTANCE=10"
+set /p SIMULATION_DISTANCE="Simulation/Render distance (server.properties) [10]: "
+if "%SIMULATION_DISTANCE%"=="" set "SIMULATION_DISTANCE=10"
+
+echo.
+echo === Google Drive (integrado) ===
+echo Intentando detectar automaticamente credentials.json...
+set "GDRIVE_CRED_PATH="
+if exist "%CD%\credentials.json" set "GDRIVE_CRED_PATH=%CD%\credentials.json"
+if "%GDRIVE_CRED_PATH%"=="" if exist "%MINECRAFT_DIR%\credentials.json" set "GDRIVE_CRED_PATH=%MINECRAFT_DIR%\credentials.json"
+if "%GDRIVE_CRED_PATH%"=="" (
+    echo No se encontro credentials.json automaticamente.
+    set /p GDRIVE_CRED_PATH="Ruta a credentials.json (Enter para omitir): "
+)
+set /p GOOGLE_DRIVE_FOLDER_ID="Google Drive Folder ID (Enter para omitir): "
+set /p GOOGLE_REFRESH_TOKEN="Google Refresh Token (Enter para omitir): "
+
+REM Extraer client_id y client_secret del JSON si existe
+set "GOOGLE_CLIENT_ID="
+set "GOOGLE_CLIENT_SECRET="
+if not "%GDRIVE_CRED_PATH%"=="" (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $j=Get-Content '%GDRIVE_CRED_PATH%' | ConvertFrom-Json; if ($j.installed) { Write-Host ('CID=' + $j.installed.client_id); Write-Host ('CSECRET=' + $j.installed.client_secret) } elseif ($j.web) { Write-Host ('CID=' + $j.web.client_id); Write-Host ('CSECRET=' + $j.web.client_secret) } } catch { }" > tmp_gd.txt
+    for /f "tokens=1,2 delims==" %%A in (tmp_gd.txt) do (
+        if /i "%%A"=="CID" set "GOOGLE_CLIENT_ID=%%B"
+        if /i "%%A"=="CSECRET" set "GOOGLE_CLIENT_SECRET=%%B"
+    )
+    del tmp_gd.txt 2>nul
+)
+
+echo.
+echo Intentando generar automaticamente GOOGLE_REFRESH_TOKEN...
+if "%GOOGLE_REFRESH_TOKEN%"=="" if not "%GDRIVE_CRED_PATH%"=="" (
+  echo Se abrira el navegador para autorizar acceso a Google Drive.
+  echo Por favor, inicia sesion y acepta los permisos.
+  > gen_refresh.py echo import sys
+  >> gen_refresh.py echo from google_auth_oauthlib.flow import InstalledAppFlow
+  >> gen_refresh.py echo scopes = ['https://www.googleapis.com/auth/drive.file']
+  >> gen_refresh.py echo flow = InstalledAppFlow.from_client_secrets_file(sys.argv[1], scopes=scopes)
+  >> gen_refresh.py echo creds = flow.run_local_server(port=0)
+  >> gen_refresh.py echo print(creds.refresh_token or '')
+  python gen_refresh.py "%GDRIVE_CRED_PATH%" > tmp_refresh.txt
+  for /f "usebackq delims=" %%T in ("tmp_refresh.txt") do set "GOOGLE_REFRESH_TOKEN=%%T"
+  del gen_refresh.py 2>nul
+  del tmp_refresh.txt 2>nul
+  if "%GOOGLE_REFRESH_TOKEN%"=="" (
+    echo No se pudo generar el refresh token automaticamente.
+  ) else (
+    echo Refresh token generado correctamente.
+  )
+)
+
+echo.
+echo === Actualizando .env real del host-agent ===
+call :SetEnv HOST_TOKEN "%HOST_TOKEN%"
+call :SetEnv PATO2_ENDPOINT "%PATO2_ENDPOINT%"
+call :SetEnv MINECRAFT_DIR "%MINECRAFT_DIR%"
+call :SetEnv SERVER_JAR "%SERVER_JAR%"
+call :SetEnv WORLD_NAME "%WORLD_NAME%"
+call :SetEnv JAVA_ARGS "%JAVA_ARGS%"
+call :SetEnv BACKUPS_PATH "%BACKUPS_PATH%"
+
+REM Escribir ambas variantes para compatibilidad
+if not "%GOOGLE_CLIENT_ID%"=="" (
+  call :SetEnv GOOGLE_CLIENT_ID "%GOOGLE_CLIENT_ID%"
+  call :SetEnv GOOGLE_DRIVE_CLIENT_ID "%GOOGLE_CLIENT_ID%"
+)
+if not "%GOOGLE_CLIENT_SECRET%"=="" (
+  call :SetEnv GOOGLE_CLIENT_SECRET "%GOOGLE_CLIENT_SECRET%"
+  call :SetEnv GOOGLE_DRIVE_CLIENT_SECRET "%GOOGLE_CLIENT_SECRET%"
+)
+if not "%GOOGLE_REFRESH_TOKEN%"=="" (
+  call :SetEnv GOOGLE_REFRESH_TOKEN "%GOOGLE_REFRESH_TOKEN%"
+  call :SetEnv GOOGLE_DRIVE_REFRESH_TOKEN "%GOOGLE_REFRESH_TOKEN%"
+)
+if not "%GOOGLE_DRIVE_FOLDER_ID%"=="" (
+  call :SetEnv GOOGLE_DRIVE_FOLDER_ID "%GOOGLE_DRIVE_FOLDER_ID%"
+)
+
+REM Calcular y escribir intervalos/retencion (horas/dias y segundos)
+set /p BACKUP_INTERVAL_HOURS="Horas entre backups (BACKUP_INTERVAL_HOURS) [24]: "
+if "%BACKUP_INTERVAL_HOURS%"=="" set "BACKUP_INTERVAL_HOURS=24"
+set /p BACKUP_RETENTION_DAYS="Dias de retencion (BACKUP_RETENTION_DAYS) [7]: "
+if "%BACKUP_RETENTION_DAYS%"=="" set "BACKUP_RETENTION_DAYS=7"
+set /a BACKUP_INTERVAL=%BACKUP_INTERVAL_HOURS%*3600
+set /a BACKUP_RETENTION=%BACKUP_RETENTION_DAYS%
+call :SetEnv BACKUP_INTERVAL_HOURS "%BACKUP_INTERVAL_HOURS%"
+call :SetEnv BACKUP_RETENTION_DAYS "%BACKUP_RETENTION_DAYS%"
+call :SetEnv BACKUP_INTERVAL "%BACKUP_INTERVAL%"
+call :SetEnv BACKUP_RETENTION "%BACKUP_RETENTION%"
+
+echo.
+echo === Ajustando server.properties (view/simulation distance) ===
+if exist "%MINECRAFT_DIR%\server.properties" (
+  powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$p='%MINECRAFT_DIR%\server.properties'; $c=Get-Content $p; $u=$false; $c = $c -replace '^view-distance=.*', 'view-distance=%VIEW_DISTANCE%' -replace '^simulation-distance=.*', 'simulation-distance=%SIMULATION_DISTANCE%'; if (-not ($c -match '^view-distance=')) { $c += '\nview-distance=%VIEW_DISTANCE%'; $u=$true } if (-not ($c -match '^simulation-distance=')) { $c += '\nsimulation-distance=%SIMULATION_DISTANCE%'; $u=$true } Set-Content -Path $p -Value $c"
 ) else (
-    set /p INPUT_VALUE="Enter %VAR_NAME% (default: %DEFAULT_VALUE%): "
+  echo view-distance=%VIEW_DISTANCE%> "%MINECRAFT_DIR%\server.properties"
+  echo simulation-distance=%SIMULATION_DISTANCE%>> "%MINECRAFT_DIR%\server.properties"
 )
 
-if "%INPUT_VALUE%"=="" (
-    set "FINAL_VALUE=%DEFAULT_VALUE%"
-) else (
-    set "FINAL_VALUE=%INPUT_VALUE%"
-)
-
-REM Use PowerShell to update or add the variable
-powershell -Command "
-    $filePath = '.\.env'
-    $varName = '%VAR_NAME%'
-    $varValue = '%FINAL_VALUE%'
-    $content = [System.IO.File]::ReadAllLines($filePath)
-    $found = $false
-    for ($i = 0; $i -lt $content.Length; $i++) {
-        if ($content[$i].StartsWith("$varName=")) {
-            $content[$i] = "$varName=$varValue"
-            $found = $true
-            break
-        }
-    }
-    if (-not $found) {
-        $content += "`n$varName=$varValue"
-    }
-    [System.IO.File]::WriteAllLines($filePath, $content)
-"
-echo Set %VAR_NAME%=%FINAL_VALUE%
-goto :eof
-
-REM Prompt for configuration values
-call :SET_ENV_VAR "HOST_TOKEN" "your_shared_token_for_hosts_change_this"
-call :SET_ENV_VAR "PATO2_ENDPOINT" "http://pato2.duckdns.org:5000"
-
-REM Default Minecraft directory to a common path relative to Pato2 installation
-set "DEFAULT_MINECRAFT_DIR=%PATO2_REPO_DIR%\minecraft_server"
-call :SET_ENV_VAR "MINECRAFT_DIR" "%DEFAULT_MINECRAFT_DIR%"
-
-call :SET_ENV_VAR "MINECRAFT_MIN_RAM" "1G"
-call :SET_ENV_VAR "MINECRAFT_MAX_RAM" "2G"
-
-call :SET_ENV_VAR "MINECRAFT_VIEW_DISTANCE" "14"
-call :SET_ENV_VAR "MINECRAFT_SIMULATION_DISTANCE" "14"
-
-REM Default Backups path to a common path relative to Pato2 installation
-set "DEFAULT_BACKUPS_PATH=%PATO2_REPO_DIR%\backups"
-call :SET_ENV_VAR "BACKUPS_PATH" "%DEFAULT_BACKUPS_PATH%"
-
-
-REM Update server.properties with configured values
-echo Updating server.properties...
-
-set "MINECRAFT_SERVER_PROPERTIES=%MINECRAFT_DIR%\server.properties"
-
-if exist "%MINECRAFT_SERVER_PROPERTIES%" (
-    REM Read values from .env
-    for /f "tokens=1* delims==" %%a in ('findstr /b /c:"MINECRAFT_VIEW_DISTANCE=" .env 2^>nul') do set "VIEW_DISTANCE=%%b"
-    for /f "tokens=1* delims==" %%a in ('findstr /b /c:"MINECRAFT_SIMULATION_DISTANCE=" .env 2^>nul') do set "SIMULATION_DISTANCE=%%b"
-
-    REM Use PowerShell to update server.properties
-    powershell -Command "
-        $filePath = '%MINECRAFT_SERVER_PROPERTIES%'
-        $content = [System.IO.File]::ReadAllLines($filePath)
-        for ($i = 0; $i -lt $content.Length; $i++) {
-            if ($content[$i].StartsWith("view-distance=")) {
-                $content[$i] = "view-distance=%VIEW_DISTANCE%"
-            }
-            if ($content[$i].StartsWith("simulation-distance=")) {
-                $content[$i] = "simulation-distance=%SIMULATION_DISTANCE%"
-            }
-        }
-        [System.IO.File]::WriteAllLines($filePath, $content)
-    "
-    echo Updated view-distance and simulation-distance in server.properties.
-) else (
-    echo WARNING: server.properties not found at "%MINECRAFT_SERVER_PROPERTIES%". Skipping update.
-)
+echo Configuration updated successfully.
 
 REM Create batch scripts for easy management
 echo Creating management scripts...
@@ -335,16 +370,14 @@ echo ========================================
 echo    Installation Complete!
 echo ========================================
 echo.
-echo Installation directory: %PATO2_REPO_DIR%\host-agent
+echo Installation directory: %INSTALL_DIR%\host-agent
 echo.
 echo NEXT STEPS:
-echo 1. Review the .env file for your configuration:
-echo    - HOST_TOKEN: Must match the token on Pato2 server
-echo    - PATO2_ENDPOINT: Your Pato2 server URL
-echo    - MINECRAFT_DIR: Path to your Minecraft server
-echo    - MINECRAFT_MIN_RAM / MINECRAFT_MAX_RAM: RAM allocation for Minecraft
-echo    - BACKUPS_PATH: Path for your backups
-echo    - Google Drive credentials for backups (if applicable)
+echo 1. Edit the .env file with your configuration:
+echo    - Set HOST_TOKEN to match your Pato2 server
+echo    - Set PATO2_ENDPOINT to your server URL
+echo    - Configure MINECRAFT_DIR path
+echo    - Set up Google Drive credentials for backups
 echo.
 echo 2. Ensure your Minecraft server is set up in the specified directory
 echo.
@@ -365,9 +398,9 @@ echo LOG FILE:
 echo %CD%\host_agent.log
 echo.
 echo For detailed setup instructions, see:
-echo %PATO2_REPO_DIR%\docs\es\installation\host-agent.md
+echo %INSTALL_DIR%\docs\es\installation\host-agent.md
 echo.
-echo Press any key to open the configuration file for final review...
+echo Press any key to open the configuration file...
 pause >nul
 
 REM Open configuration file for editing
@@ -377,3 +410,11 @@ echo.
 echo Installation script completed.
 echo You can now start the host agent using start-host-agent.bat
 pause
+
+goto :eof
+
+:SetEnv
+REM Usage: call :SetEnv KEY VALUE
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$envPath='.env'; $key=$args[0]; $val=$args[1]; $exists=$false; if (Test-Path $envPath) { $lines=Get-Content $envPath; $new = foreach ($line in $lines) { if ($line -match "^$key=") { $exists=$true; \"$key=$val\" } else { $line } }; if ($exists) { Set-Content -Path $envPath -Value $new } else { Add-Content -Path $envPath -Value \"$key=$val\" } } else { Set-Content -Path $envPath -Value \"$key=$val\" }" %~1 %~2
+exit /b 0
