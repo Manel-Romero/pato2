@@ -295,30 +295,13 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
-REM Update server.properties with view/simulation distance
+REM Update server.properties with view/simulation distance (avoid inline parentheses)
 set "SERVER_PROPERTIES=%MINECRAFT_DIR%\server.properties"
-if exist "%SERVER_PROPERTIES%" (
-    call :log "Actualizando server.properties (%SERVER_PROPERTIES%)..."
-    powershell -NoProfile -Command "\
-        $p='%SERVER_PROPERTIES%'; \
-        $content = if (Test-Path $p) { Get-Content $p } else { @() }; \
-        $map = @{ 'view-distance'='%VIEW_DISTANCE%'; 'simulation-distance'='%SIMULATION_DISTANCE%' }; \
-        foreach ($k in $map.Keys) { \
-            if ($content | Select-String -Pattern "^$k=.*" -Quiet) { \
-                $content = $content -replace ("^"+$k+"=.*"), ($k+"="+$map[$k]); \
-            } else { \
-                $content += ($k+"="+$map[$k]); \
-            } \
-        }; \
-        Set-Content -Path $p -Value $content \
-    "
-    if %errorLevel% neq 0 (
-        call :log "ADVERTENCIA: No se pudo actualizar server.properties."
-    ) else (
-        call :log "server.properties actualizado."
-    )
-) else (
+if not exist "%SERVER_PROPERTIES%" (
     call :log "Nota: No se encontró server.properties en %MINECRAFT_DIR%."
+) else (
+    call :log "Actualizando server.properties (%SERVER_PROPERTIES%)..."
+    call :update_server_properties "%SERVER_PROPERTIES%" "%VIEW_DISTANCE%" "%SIMULATION_DISTANCE%"
 )
 
 REM Create batch scripts for easy management
@@ -358,6 +341,35 @@ echo echo Updating Pato2 Host Agent... >> update-host-agent.bat
 echo git pull >> update-host-agent.bat
 echo call venv\Scripts\activate.bat >> update-host-agent.bat
 echo pip install -r requirements.txt --upgrade >> update-host-agent.bat
+
+goto :continue_after_props
+
+:update_server_properties
+setlocal
+set "PS_SCRIPT=%CD%\__update_props.ps1"
+> "%PS_SCRIPT%" echo param([string]^$p,[string]^$view,[string]^$sim)
+>> "%PS_SCRIPT%" echo $content = if (Test-Path ^$p) { Get-Content ^$p } else { @() }
+>> "%PS_SCRIPT%" echo $map = @{ 'view-distance' = ^$view; 'simulation-distance' = ^$sim }
+>> "%PS_SCRIPT%" echo foreach (^$k in ^$map.Keys) {
+>> "%PS_SCRIPT%" echo     if (^$content -match "^$k=.*") {
+>> "%PS_SCRIPT%" echo         ^$content = ^$content -replace ("^"+^$k+"=.*"), (^$k+"="+^$map[^$k])
+>> "%PS_SCRIPT%" echo     } else {
+>> "%PS_SCRIPT%" echo         ^$content += (^$k+"="+^$map[^$k])
+>> "%PS_SCRIPT%" echo     }
+>> "%PS_SCRIPT%" echo }
+>> "%PS_SCRIPT%" echo Set-Content -Path ^$p -Value ^$content
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" "%~1" "%~2" "%~3"
+set "_ps_err=%errorlevel%"
+del /q "%PS_SCRIPT%" 2>nul
+if not "%_ps_err%"=="0" (
+    call :log "ADVERTENCIA: No se pudo actualizar server.properties."
+) else (
+    call :log "server.properties actualizado."
+)
+endlocal
+goto :eof
+
+:continue_after_props
 echo echo Update complete! >> update-host-agent.bat
 echo pause >> update-host-agent.bat
 
