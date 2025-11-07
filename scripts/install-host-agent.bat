@@ -17,14 +17,16 @@ REM Simple logger macros are tricky in batch; just echo and append
 
 REM Helper: set or replace a line KEY=VALUE in .env
 REM Usage: call :set_env KEY VALUE
+REM ENV_FILE and ENV_EXAMPLE will be set after changing to host-agent directory
 set "ENV_FILE=.env"
+set "ENV_EXAMPLE=.env.example"
 :
 :set_env
 set "_KEY=%~1"
 set "_VAL=%~2"
 if not exist "%ENV_FILE%" (
     echo Creating %ENV_FILE% >> "%LOG_FILE%"
-    copy ".env.example" "%ENV_FILE%" >nul 2>&1
+    copy "%ENV_EXAMPLE%" "%ENV_FILE%" >nul 2>&1
 )
 set "TMP_PS=%TEMP%\pato2_setenv.ps1"
 >"%TMP_PS%" echo param([string]^$File,[string]^$Key,[string]^$Value)
@@ -33,7 +35,7 @@ set "TMP_PS=%TEMP%\pato2_setenv.ps1"
 >>"%TMP_PS%" echo ^$pattern = '^' + [regex]::Escape(^$Key) + '='
 >>"%TMP_PS%" echo ^$idx = (^$lines ^| Select-String -Pattern ^$pattern).LineNumber
 >>"%TMP_PS%" echo if (^$idx) { ^$lines[^$idx-1] = "^$Key=^$Value"; ^$lines ^| Set-Content ^$File } else { Add-Content -Path ^$File -Value "^$Key=^$Value" }
-powershell -NoProfile -File "%TMP_PS%" "%CD%\%ENV_FILE%" "%_KEY%" "%_VAL%"
+powershell -NoProfile -File "%TMP_PS%" "%ENV_FILE%" "%_KEY%" "%_VAL%"
 if errorlevel 1 (
     echo ERROR: failed writing %_KEY% to %ENV_FILE% >> "%LOG_FILE%"
 )
@@ -168,6 +170,10 @@ if %errorLevel% neq 0 (
 
 echo Current directory: %CD%
 
+REM Set absolute paths for env files to avoid wrong working directory issues
+set "ENV_FILE=%CD%\.env"
+set "ENV_EXAMPLE=%CD%\.env.example"
+
 REM Create virtual environment
 echo Creating Python virtual environment...
 python -m venv venv
@@ -201,7 +207,7 @@ REM ========================================
 REM Guided configuration (.env + server.properties)
 REM ========================================
 echo Configuring environment (.env) and server properties...
-if not exist ".env" copy ".env.example" ".env" >nul 2>&1
+if not exist "%ENV_FILE%" copy "%ENV_EXAMPLE%" "%ENV_FILE%" >nul 2>&1
 
 REM Defaults
 set "DEFAULT_ENDPOINT=http://pato2.duckdns.org:5000"
