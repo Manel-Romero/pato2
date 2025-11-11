@@ -245,6 +245,46 @@ function createApiRoutes(hostManager, proxyManager) {
     });
 
     /**
+     * POST /api/minecraft/command
+     * Send arbitrary Minecraft server command (password protected)
+     */
+    router.post('/minecraft/command', (req, res) => {
+        try {
+            const { password, command } = req.body || {};
+
+            if (!password || !command || typeof command !== 'string') {
+                return res.status(400).json({ success: false, error: 'Missing password or command' });
+            }
+
+            if (!process.env.COMMAND_PASSWORD) {
+                logger.warn('COMMAND_PASSWORD not set');
+                return res.status(500).json({ success: false, error: 'Server misconfiguration' });
+            }
+
+            if (password !== process.env.COMMAND_PASSWORD) {
+                return res.status(401).json({ success: false, error: 'Unauthorized' });
+            }
+
+            const hostStatus = hostManager.getStatus();
+            if (!hostStatus.hasActiveHost) {
+                return res.status(503).json({ success: false, error: 'No active host' });
+            }
+
+            const message = { type: 'minecraft_command', command };
+            const sent = hostManager.sendToActiveHost(message);
+            if (!sent) {
+                return res.status(500).json({ success: false, error: 'Failed to send command to host' });
+            }
+
+            logger.info(`Minecraft command sent to host: ${command}`);
+            res.json({ success: true });
+        } catch (error) {
+            logger.error('Error in /api/minecraft/command:', error);
+            res.status(500).json({ success: false, error: 'Internal server error' });
+        }
+    });
+
+    /**
      * GET /api/health
      * Health check endpoint
      */

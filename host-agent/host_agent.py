@@ -280,6 +280,8 @@ class HostAgent:
                 self.handle_udp_close(data)
             elif message_type == 'backup_command':
                 self.handle_backup_command(data)
+            elif message_type == 'minecraft_command':
+                self.handle_minecraft_command(data)
             elif message_type == 'ping':
                 self.send_websocket_message({'type': 'pong'})
             else:
@@ -457,6 +459,24 @@ class HostAgent:
                 daemon=True
             )
             thread.start()
+
+    def handle_minecraft_command(self, data):
+        """Handle arbitrary Minecraft command from Pato2"""
+        cmd = data.get('command', '').strip()
+        self.logger.info(f"Received minecraft command: {cmd}")
+        if not cmd:
+            return
+        try:
+            if self.minecraft_manager.is_server_running():
+                ok = self.minecraft_manager.send_command(cmd)
+                if ok:
+                    self.logger.info(f"Minecraft command executed: {cmd}")
+                else:
+                    self.logger.warning(f"Failed to execute command: {cmd}")
+            else:
+                self.logger.warning("Cannot execute command: server not running")
+        except Exception as e:
+            self.logger.error(f"Error executing minecraft command '{cmd}': {e}")
 
     def handle_minecraft_data(self, stream_id: str, sock: socket.socket):
         """Handle data from Minecraft server for a specific stream"""
