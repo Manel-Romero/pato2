@@ -53,6 +53,7 @@ class Pato2Server {
                     ],
                     scriptSrc: [
                         "'self'",
+                        "'unsafe-inline'",
                         "https://cdn.jsdelivr.net"
                     ],
                     imgSrc: ["'self'", "data:", "https:"],

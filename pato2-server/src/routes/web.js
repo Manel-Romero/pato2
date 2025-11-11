@@ -58,59 +58,97 @@ function generateDashboardHTML(data) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${data.title}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --bg: #fffdf7;
-            --bg-soft: #fff7e9;
-            --text: #111111;
-            --muted: #545454;
             --accent: #f5b301; /* amarillo elegante */
-            --accent-2: #ff7a00; /* naranja */
-            --accent-soft: #fff1c7; /* amarillo suave */
-            --card: #ffffff;
-            --border: rgba(0,0,0,0.08);
+            --accent-dark: #ff8c42; /* naranja suave */
+            --bg: #f7f7f9; /* fondo claro */
+            --card-bg: #ffffff;
+            --text: #111111; /* texto oscuro */
         }
 
+        /* Eliminar márgenes por defecto y ocultar overflow horizontal */
+        html, body { margin: 0; overflow-x: hidden; }
+
         body {
-            background: linear-gradient(180deg, #f1f3b2ff 0%, #f8c471ff 100%);
+            background: var(--bg);
             color: var(--text);
             min-height: 100vh;
+            /* fondo claro minimalista con degradado sutil */
+            background-image: linear-gradient(180deg, rgba(245,179,1,0.06), rgba(255,255,255,0));
+            background-repeat: no-repeat;
+            background-size: 100% 180px;
+            animation: subtleGlow 10s ease-in-out infinite;
+        }
+
+        @keyframes subtleGlow {
+            0%, 100% { filter: saturate(1) brightness(1); }
+            50% { filter: saturate(1.05) brightness(1.02); }
         }
 
         .navbar {
-            background: #ffb829ff;
-            border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(6px);
+            background: #ffffff;
+            color: #111111;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+        }
+        /* Barra inferior con degradado sutil para acento visual */
+        .accent-bar { position: relative; }
+        .accent-bar::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dark) 100%);
+            opacity: 0.9;
         }
 
         .status-card { 
-            transition: transform 0.18s ease, box-shadow 0.18s ease; 
-            background: var(--card);
-            border: 1px solid var(--border);
-            box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+            transition: transform 0.22s ease, box-shadow 0.22s ease; 
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
         }
-        .status-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(0,0,0,0.08); }
+        .status-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.10); }
         .badge { font-size: 0.8em; }
         .metric-value { font-size: 2rem; font-weight: bold; }
-        .refresh-btn { position: fixed; bottom: 20px; right: 20px; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #111; border: none; box-shadow: 0 8px 14px rgba(255,122,0,0.18); }
+        /* refresh eliminado */
 
         .text-accent { color: var(--accent); }
-        .btn-outline-warning { border-color: var(--accent-2); color: var(--accent-2); }
-        .btn-outline-warning:hover { background: var(--accent-2); color: #ffffff; }
+        .btn-outline-warning { border-color: var(--accent); color: var(--accent); }
+        .btn-outline-warning:hover { background: var(--accent); color: #1a1a1a; }
 
-        /* Estanque decorativo al pie */
-        .pond { position: fixed; left: 0; right: 0; bottom: 0; height: 120px; pointer-events: none; }
-        .pond svg { width: 100%; height: 100%; display: block; }
-        .water { opacity: 0.95; animation: shimmer 8s ease-in-out infinite; }
-        @keyframes shimmer { 0%,100% { filter: brightness(1);} 50% { filter: brightness(1.06);} }
-        .reed { transform-origin: bottom center; animation: sway 6s ease-in-out infinite; will-change: transform; }
-        @keyframes sway { 0%,100% { transform: rotate(0deg);} 50% { transform: rotate(0.9deg);} }
+        /* Duck CSS Art (bottom-right, scaled to 5% viewport width, hidden on mobile) */
+        :root { --duck-width: 5vw; }
+        .duck { position: fixed; right: 12px; bottom: 12px; transform-origin: bottom right; z-index: 50; pointer-events: none; }
+        .duck .duck-art { width: 420px; height: 500px; position: relative; transform: scale(calc(var(--duck-width) / 420px)); transform-origin: bottom right; }
+        .duck-body { background-color: #fed72b; height: 150px; width: 150px; border-radius: 50%; position: absolute; top: 100px; left: 100px; }
+        .duck-body::before { position: absolute; content: ""; background-color: transparent; height: 150px; width: 150px; box-shadow: 80px 45px 0 #fe9711; border-radius: 50%; left: 10px; top: -5px; transform: rotate(30deg); }
+        .duck-body::after { position: absolute; content: ""; background-color: #fed72b; height: 130px; width: 220px; position: absolute; top: 140px; border-radius: 70px; }
+        .duck-feather { position: absolute; background-color: #fef53a; width: 170px; height: 110px; top: 220px; left: 190px; border-radius: 31% 69% 69% 31%/ 50% 100% 0 50%; }
+        .duck-feather::before { position: absolute; content: ""; background-color: #fe9711; width: 80px; height: 20px; top: -100px; left: -15px; z-index: -1; border-radius: 0 5px 20px 0; }
+        .duck-feather::after { position: absolute; content: ""; background-color: #fed72b; width: 70px; height: 25px; top: -120px; left: -15px; border-radius: 0 5px 20px 0; }
+        /* Sclera (static) */
+        .duck-eye { position: absolute; background-color: #fefefe; height: 53px; width: 53px; top: 147px; left: 167px; border-radius: 50%; overflow: hidden; }
+        /* Iris (moves with cursor) */
+        .duck-iris { position: absolute; background-color: #434453; height: 27px; width: 27px; top: 50%; left: 50%; border-radius: 50%; transform: translate(-50%, -50%); }
+        /* Pupil (centered inside iris) */
+        .duck-iris .duck-pupil { position: absolute; height: 14px; width: 14px; background-color: #111111; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        /* (sin piezas extra en el ojo) */
+        .duck-beak { background-color: #d55326; height: 20px; width: 80px; position: absolute; top: 190px; left: 70px; border-radius: 35% 10% 16% 0 / 100% 0 30% 10%; }
+        .duck-beak::before { position: absolute; content: ""; height: 40px; width: 90px; background-color: #fe9711; border-radius: 0 40% 0 40%/0 100% 0 100%; bottom: 12px; right: -1px; }
+        .duck-beak::after { position: absolute; content: ""; height: 7px; width: 15px; background-color: #d45326; bottom: 40px; right: 30px; border-radius: 5px; }
+        .duck-leg { position: absolute; background-color: #fe9711; width: 12px; height: 30px; top: 370px; left: 220px; box-shadow: -30px 0 #d45326; }
+        .duck-leg::before { position: absolute; content: ""; background-color: #fe9711; width: 52px; height: 12px; left: -23px; top: 25px; border-radius: 5px; box-shadow: -30px 0 #d45326; }
+        .duck-leg::after { position: absolute; content: ""; background-color: #7e2e4e; height: 15px; width: 540px; top: 38px; right: -340px; border-radius: 7px; }
+        @media (max-width: 768px) { .duck { display: none; } }
+        @media (pointer: coarse) { .duck { display: none; } }
     </style>
 </head>
 <body>
-    <nav class="navbar">
+    <nav class="navbar navbar-light bg-white accent-bar">
         <div class="container">
             <span class="navbar-brand mb-0 h1">
                 <i class="fas fa-cubes"></i> Pato2 Dashboard
@@ -202,15 +240,16 @@ function generateDashboardHTML(data) {
             </div>
         </div>
 
-        <!-- Comandos de Minecraft -->
+        <!-- Comandos de Minecraft (con contraseña) -->
         <div class="row">
             <div class="col-12">
                 <div class="card status-card">
                     <div class="card-header d-flex align-items-center justify-content-between">
                         <h5 class="mb-0"><i class="fas fa-terminal"></i> Comandos de Minecraft</h5>
+                        <small class="text-muted">Protegido por contraseña</small>
                     </div>
                     <div class="card-body">
-                        <form id="mc-command-form" class="row g-3" onsubmit="return sendMinecraftCommand(event)">
+                        <form id="mc-command-form" class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Contraseña</label>
                                 <input type="password" class="form-control" id="cmd-password" placeholder="••••••" required>
@@ -228,7 +267,7 @@ function generateDashboardHTML(data) {
                         <div id="cmd-result" class="mt-3"></div>
 
                         <hr class="my-4">
-                        <button onclick="triggerBackup()" class="btn btn-outline-warning" ${!data.host.hasActiveHost ? 'disabled' : ''}>
+                        <button id="backup-btn" class="btn btn-outline-warning" ${!data.host.hasActiveHost ? 'disabled' : ''}>
                             <i class="fas fa-save"></i> Backup Manual
                         </button>
                     </div>
@@ -237,122 +276,104 @@ function generateDashboardHTML(data) {
         </div>
     </div>
 
-    <button class="btn btn-primary refresh-btn" onclick="location.reload()">
-        <i class="fas fa-sync-alt"></i>
-    </button>
+    <!-- refresh eliminado -->
 
-    <!-- Estanque decorativo con cañas al pie -->
-    <div class="pond">
-        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-                <linearGradient id="waterGradient" x1="0" x2="1" y1="0" y2="0">
-                    <stop offset="0%" stop-color="#ffffff" />
-                    <stop offset="50%" stop-color="rgba(184, 202, 255, 1)" />
-                    <stop offset="100%" stop-color="#6259e4ff" />
-                </linearGradient>
-            </defs>
-            <rect class="water" x="0" y="40" width="1200" height="80" fill="url(#waterGradient)" />
-            <g stroke-width="3" fill="none">
-                <!-- Cañas más densas e independientes, tonos de verde variados y movimiento más leve -->
-                <path class="reed" d="M70,72 C72,60 74,50 76,40" style="stroke:#2e7d32; animation: sway 6.2s ease-in-out infinite 0.8s;" />
-                <path class="reed" d="M74,73 C76,61 78,51 80,41" style="stroke:#1b5e20; animation: sway 7.1s ease-in-out infinite 1.6s;" />
-                <path class="reed" d="M78,74 C80,62 82,52 84,42" style="stroke:#388e3c; animation: sway 5.7s ease-in-out infinite 0.3s;" />
-                <path class="reed" d="M82,71 C84,59 86,49 88,39" style="stroke:#43a047; animation: sway 6.8s ease-in-out infinite 1.2s;" />
-                <path class="reed" d="M86,73 C88,61 90,51 92,41" style="stroke:#4caf50; animation: sway 5.9s ease-in-out infinite 0.9s;" />
-                <path class="reed" d="M90,70 C92,58 94,48 96,38" style="stroke:#66bb6a; animation: sway 7.3s ease-in-out infinite 1.9s;" />
-                <path class="reed" d="M94,73 C96,61 98,51 100,41" style="stroke:#2e7d32; animation: sway 6.5s ease-in-out infinite 0.5s;" />
-                <path class="reed" d="M98,71 C100,59 102,49 104,39" style="stroke:#1b5e20; animation: sway 5.8s ease-in-out infinite 1.4s;" />
-                <path class="reed" d="M102,73 C104,61 106,51 108,41" style="stroke:#388e3c; animation: sway 6.1s ease-in-out infinite 0.6s;" />
-                <path class="reed" d="M106,70 C108,58 110,48 112,38" style="stroke:#43a047; animation: sway 7.0s ease-in-out infinite 1.1s;" />
-                <path class="reed" d="M110,75 C112,63 114,53 116,43" style="stroke:#4caf50; animation: sway 5.6s ease-in-out infinite 0.2s;" />
-                <path class="reed" d="M114,71 C116,59 118,49 120,39" style="stroke:#66bb6a; animation: sway 6.9s ease-in-out infinite 1.5s;" />
-                <path class="reed" d="M118,74 C120,62 122,52 124,42" style="stroke:#2e7d32; animation: sway 5.9s ease-in-out infinite 0.7s;" />
-                <path class="reed" d="M122,69 C124,57 126,47 128,37" style="stroke:#1b5e20; animation: sway 6.7s ease-in-out infinite 1.3s;" />
-                <path class="reed" d="M126,74 C128,62 130,52 132,42" style="stroke:#388e3c; animation: sway 6.0s ease-in-out infinite 0.4s;" />
-                <path class="reed" d="M130,68 C132,56 134,46 136,36" style="stroke:#43a047; animation: sway 7.2s ease-in-out infinite 1.8s;" />
-                <path class="reed" d="M134,73 C136,61 138,51 140,41" style="stroke:#4caf50; animation: sway 6.3s ease-in-out infinite 1.0s;" />
-                <path class="reed" d="M138,70 C140,58 142,48 144,38" style="stroke:#66bb6a; animation: sway 5.7s ease-in-out infinite 0.1s;" />
-                <path class="reed" d="M142,73 C144,61 146,51 148,41" style="stroke:#2e7d32; animation: sway 6.6s ease-in-out infinite 1.7s;" />
-                <path class="reed" d="M146,71 C148,59 150,49 152,39" style="stroke:#388e3c; animation: sway 6.4s ease-in-out infinite 0.95s;" />
-                <path class="reed" d="M150,72 C152,60 154,50 156,40" style="stroke:#1b5e20; animation: sway 7.1s ease-in-out infinite 1.25s;" />
-                <path class="reed" d="M154,69 C156,57 158,47 160,37" style="stroke:#43a047; animation: sway 5.8s ease-in-out infinite 0.45s;" />
-                <path class="reed" d="M158,74 C160,62 162,52 164,42" style="stroke:#4caf50; animation: sway 6.7s ease-in-out infinite 1.35s;" />
-                <path class="reed" d="M162,70 C164,58 166,48 168,38" style="stroke:#66bb6a; animation: sway 6.0s ease-in-out infinite 0.75s;" />
-            </g>
-        </svg>
+    <!-- Duck CSS Art -->
+    <div class="duck" aria-hidden="true">
+        <div class="duck-art">
+            <div class="duck-body"></div>
+            <div class="duck-feather"></div>
+            <div class="duck-eye"><div class="duck-iris"><div class="duck-pupil"></div></div></div>
+            <div class="duck-beak"></div>
+            <div class="duck-leg"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    // Dashboard client-side logic (inline)
+    (function() {
+      function $(sel) { return document.querySelector(sel); }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        // refresh eliminado
+
+        // Backup manual
+        var backupBtn = $('#backup-btn');
+        if (backupBtn) {
+          backupBtn.addEventListener('click', function() {
+            if (!confirm('¿Iniciar backup manual del servidor?')) return;
+            fetch('/api/host/backup-command', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: 'admin', command: 'backup_now' })
+            })
+            .then(function(r){ return r.json(); })
+            .then(function(r){
+              alert(r.success ? 'Comando de backup enviado al host' : ('Error: ' + (r.error || 'Solicitud inválida')));
+            })
+            .catch(function(err){ alert('Error de conexión: ' + err.message); });
+          });
         }
 
-        function formatUptime(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            return hours + 'h ' + minutes + 'm';
-        }
-
-        function triggerBackup() {
-            if (confirm('¿Iniciar backup manual del servidor?')) {
-                fetch('http://${data.domain}:${data.webPort}/api/host/backup-command', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: 'admin', command: 'backup_now' })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Comando de backup enviado al host');
-                    } else {
-                        alert('Error: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    alert('Error de conexión: ' + error.message);
-                });
-            }
-        }
-
-        function sendMinecraftCommand(e) {
+        // Minecraft command form
+        var form = $('#mc-command-form');
+        if (form) {
+          form.addEventListener('submit', function(e) {
             e.preventDefault();
-            const password = document.getElementById('cmd-password').value.trim();
-            const command = document.getElementById('cmd-text').value.trim();
-            const resultEl = document.getElementById('cmd-result');
-
+            var password = $('#cmd-password').value.trim();
+            var command = $('#cmd-text').value.trim();
+            var resultEl = $('#cmd-result');
             if (!password || !command) {
-                resultEl.innerHTML = '<div class="alert alert-warning">Introduce contraseña y comando.</div>';
-                return false;
+              resultEl.innerHTML = '<div class="alert alert-warning">Introduce contraseña y comando.</div>';
+              return;
             }
-
             resultEl.innerHTML = '<div class="alert alert-info">Enviando comando...</div>';
-            fetch('http://${data.domain}:${data.webPort}/api/minecraft/command', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password, command })
+            fetch('/api/minecraft/command', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password: password, command: command })
             })
-            .then(r => r.json())
-            .then(r => {
-                if (r.success) {
-                    resultEl.innerHTML = '<div class="alert alert-success">Comando enviado correctamente.</div>';
-                    document.getElementById('mc-command-form').reset();
-                } else {
-                    resultEl.innerHTML = '<div class="alert alert-danger">Error: ' + (r.error || 'Solicitud inválida') + '</div>';
-                }
+            .then(function(r){ return r.json(); })
+            .then(function(r){
+              if (r.success) {
+                resultEl.innerHTML = '<div class="alert alert-success">Comando enviado correctamente.</div>';
+                form.reset();
+              } else {
+                resultEl.innerHTML = '<div class="alert alert-danger">Error: ' + (r.error || 'Solicitud inválida') + '</div>';
+              }
             })
-            .catch(err => {
-                resultEl.innerHTML = '<div class="alert alert-danger">Error de conexión: ' + err.message + '</div>';
+            .catch(function(err){
+              resultEl.innerHTML = '<div class="alert alert-danger">Error de conexión: ' + err.message + '</div>';
             });
-            return false;
+          });
         }
 
-        // Auto-refresh every 30 seconds
-        setTimeout(() => location.reload(), 30000);
+        // Duck eye follows cursor (desktop only)
+        var duck = $('.duck');
+        var eye = $('.duck-eye'); // sclera (static)
+        var iris = $('.duck-iris'); // moves
+        var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        if (duck && eye && iris && !coarse) {
+          function onMove(e) {
+            var eyeRect = eye.getBoundingClientRect();
+            var irisRect = iris.getBoundingClientRect();
+            var cx = eyeRect.left + eyeRect.width / 2;
+            var cy = eyeRect.top + eyeRect.height / 2;
+            var dx = e.clientX - cx;
+            var dy = e.clientY - cy;
+            var angle = Math.atan2(dy, dx);
+            // Radio de movimiento ampliado: acercamos más el iris al borde
+            var margin = ((Math.min(eyeRect.width, eyeRect.height) - Math.min(irisRect.width, irisRect.height)) / 2);
+            var max = Math.max(8, margin + 3);
+            var tx = Math.cos(angle) * max;
+            var ty = Math.sin(angle) * max;
+            iris.style.transform = 'translate(-50%, -50%) translate(' + tx + 'px,' + ty + 'px)';
+          }
+          window.addEventListener('mousemove', onMove);
+        }
+      });
+    })();
     </script>
 </body>
 </html>`;
