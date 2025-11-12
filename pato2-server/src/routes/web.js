@@ -13,7 +13,7 @@ function createWebRoutes(hostManager, proxyManager) {
         try {
             const hostStatus = hostManager.getStatus();
             const proxyStats = proxyManager.getStats();
-            
+
             const data = {
                 title: 'Pato2 - Dashboard',
                 domain: process.env.DOMAIN || 'localhost',
@@ -24,6 +24,12 @@ function createWebRoutes(hostManager, proxyManager) {
                     ready: proxyManager.isReady(),
                     stats: proxyStats
                 },
+                system: {
+                    uptime: process.uptime(),
+                    memory: process.memoryUsage(),
+                    version: process.version,
+                    platform: process.platform
+                },
                 timestamp: new Date().toISOString()
             };
 
@@ -33,9 +39,6 @@ function createWebRoutes(hostManager, proxyManager) {
             res.status(500).send('Internal server error');
         }
     });
-
-    // Rutas unificadas: sin /status ni /connections
-
     return router;
 }
 
@@ -43,13 +46,20 @@ function createWebRoutes(hostManager, proxyManager) {
  * Generate main dashboard HTML
  */
 function generateDashboardHTML(data) {
-    const hostStatusBadge = data.host.hasActiveHost 
+    // Badges sin exponer IPs ni datos sensibles
+    const hostStatusBadge = data.host.hasActiveHost
         ? `<span class="badge badge-success">Activo</span>`
         : `<span class="badge badge-danger">Sin Host</span>`;
-    
+
     const proxyStatusBadge = data.proxy.ready
         ? `<span class="badge badge-success">Listo</span>`
         : `<span class="badge badge-warning">No Disponible</span>`;
+
+    // Métricas de sistema
+    const mem = data.system?.memory || {};
+    const rss = typeof mem.rss === 'number' ? formatBytes(mem.rss) : 'N/A';
+    const heapUsed = typeof mem.heapUsed === 'number' ? formatBytes(mem.heapUsed) : 'N/A';
+    const uptimeStr = formatUptime((data.system?.uptime) || 0);
 
     return `
 <!DOCTYPE html>
@@ -63,65 +73,35 @@ function generateDashboardHTML(data) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --accent: #f5b301; /* amarillo elegante */
-            --accent-dark: #ff8c42; /* naranja suave */
-            --bg: #f7f7f9; /* fondo claro */
+            --accent: #f5b301;
+            --accent-dark: #ff8c42;
+            --bg: #f7f7f9;
             --card-bg: #ffffff;
-            --text: #111111; /* texto oscuro */
+            --text: #111111;
+            --duck-width: 5vw;
         }
-
-        /* Eliminar márgenes por defecto y ocultar overflow horizontal */
         html, body { margin: 0; overflow-x: hidden; }
-
         body {
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
-            /* fondo claro minimalista con degradado sutil */
             background-image: linear-gradient(180deg, rgba(245,179,1,0.06), rgba(255,255,255,0));
             background-repeat: no-repeat;
             background-size: 100% 180px;
             animation: subtleGlow 10s ease-in-out infinite;
         }
-
-        @keyframes subtleGlow {
-            0%, 100% { filter: saturate(1) brightness(1); }
-            50% { filter: saturate(1.05) brightness(1.02); }
-        }
-
-        .navbar {
-            background: #ffffff;
-            color: #111111;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.06);
-        }
-        /* Barra inferior con degradado sutil para acento visual */
+        @keyframes subtleGlow { 0%, 100% { filter: saturate(1) brightness(1); } 50% { filter: saturate(1.05) brightness(1.02); } }
+        .navbar { background: #ffffff; color: #111111; box-shadow: 0 6px 24px rgba(0,0,0,0.06); }
         .accent-bar { position: relative; }
-        .accent-bar::after {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0;
-            width: 100%; height: 4px;
-            background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dark) 100%);
-            opacity: 0.9;
-        }
-
-        .status-card { 
-            transition: transform 0.22s ease, box-shadow 0.22s ease; 
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.05);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-        }
+        .accent-bar::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dark) 100%); opacity: 0.9; }
+        .status-card { transition: transform 0.22s ease, box-shadow 0.22s ease; background: #ffffff; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
         .status-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.10); }
         .badge { font-size: 0.8em; }
         .metric-value { font-size: 2rem; font-weight: bold; }
-        /* refresh eliminado */
-
         .text-accent { color: var(--accent); }
         .btn-outline-warning { border-color: var(--accent); color: var(--accent); }
         .btn-outline-warning:hover { background: var(--accent); color: #1a1a1a; }
-
-        /* Duck CSS Art (bottom-right, scaled to 5% viewport width, hidden on mobile) */
-        :root { --duck-width: 5vw; }
+        /* Duck CSS Art */
         .duck { position: fixed; right: 12px; bottom: 12px; transform-origin: bottom right; z-index: 50; pointer-events: none; }
         .duck .duck-art { width: 420px; height: 500px; position: relative; transform: scale(calc(var(--duck-width) / 420px)); transform-origin: bottom right; }
         .duck-body { background-color: #fed72b; height: 150px; width: 150px; border-radius: 50%; position: absolute; top: 100px; left: 100px; }
@@ -130,13 +110,9 @@ function generateDashboardHTML(data) {
         .duck-feather { position: absolute; background-color: #fef53a; width: 170px; height: 110px; top: 220px; left: 190px; border-radius: 31% 69% 69% 31%/ 50% 100% 0 50%; }
         .duck-feather::before { position: absolute; content: ""; background-color: #fe9711; width: 80px; height: 20px; top: -100px; left: -15px; z-index: -1; border-radius: 0 5px 20px 0; }
         .duck-feather::after { position: absolute; content: ""; background-color: #fed72b; width: 70px; height: 25px; top: -120px; left: -15px; border-radius: 0 5px 20px 0; }
-        /* Sclera (static) */
         .duck-eye { position: absolute; background-color: #fefefe; height: 53px; width: 53px; top: 147px; left: 167px; border-radius: 50%; overflow: hidden; }
-        /* Iris (moves with cursor) */
         .duck-iris { position: absolute; background-color: #434453; height: 27px; width: 27px; top: 50%; left: 50%; border-radius: 50%; transform: translate(-50%, -50%); }
-        /* Pupil (centered inside iris) */
         .duck-iris .duck-pupil { position: absolute; height: 14px; width: 14px; background-color: #111111; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        /* (sin piezas extra en el ojo) */
         .duck-beak { background-color: #d55326; height: 20px; width: 80px; position: absolute; top: 190px; left: 70px; border-radius: 35% 10% 16% 0 / 100% 0 30% 10%; }
         .duck-beak::before { position: absolute; content: ""; height: 40px; width: 90px; background-color: #fe9711; border-radius: 0 40% 0 40%/0 100% 0 100%; bottom: 12px; right: -1px; }
         .duck-beak::after { position: absolute; content: ""; height: 7px; width: 15px; background-color: #d45326; bottom: 40px; right: 30px; border-radius: 5px; }
@@ -153,14 +129,12 @@ function generateDashboardHTML(data) {
             <span class="navbar-brand mb-0 h1">
                 <i class="fas fa-cubes"></i> Pato2 Dashboard
             </span>
-            <span class="navbar-text">
-                ${data.domain}:${data.proxyPort}
-            </span>
+            <!-- Ocultamos dominio/IP para seguridad -->
         </div>
     </nav>
 
     <div class="container mt-4">
-        <!-- Status Overview -->
+        <!-- Estado del Host y Proxy -->
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="card status-card">
@@ -171,7 +145,6 @@ function generateDashboardHTML(data) {
                         </h5>
                         ${data.host.hasActiveHost ? `
                             <p class="card-text">
-                                <strong>Lease ID:</strong> ${data.host.activeHost.leaseId.substring(0, 8)}...<br>
                                 <strong>Servidor:</strong> ${data.host.activeHost.serverRunning ? 'Ejecutándose' : 'Detenido'}<br>
                                 <strong>Conexiones:</strong> ${data.host.activeHost.connections}<br>
                                 <strong>TTL:</strong> ${Math.round(data.host.activeHost.timeLeft / 1000)}s
@@ -200,7 +173,7 @@ function generateDashboardHTML(data) {
             </div>
         </div>
 
-        <!-- Metrics -->
+        <!-- Métricas -->
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="card text-center status-card">
@@ -240,43 +213,23 @@ function generateDashboardHTML(data) {
             </div>
         </div>
 
-        <!-- Comandos de Minecraft (con contraseña) -->
-        <div class="row">
-            <div class="col-12">
+        <!-- Sistema -->
+        <div class="row mb-4">
+            <div class="col-md-12">
                 <div class="card status-card">
-                    <div class="card-header d-flex align-items-center justify-content-between">
-                        <h5 class="mb-0"><i class="fas fa-terminal"></i> Comandos de Minecraft</h5>
-                        <small class="text-muted">Protegido por contraseña</small>
-                    </div>
                     <div class="card-body">
-                        <form id="mc-command-form" class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Contraseña</label>
-                                <input type="password" class="form-control" id="cmd-password" placeholder="••••••" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Comando</label>
-                                <input type="text" class="form-control" id="cmd-text" placeholder="Ej. say Hola a todos" required>
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-outline-warning w-100" ${!data.host.hasActiveHost ? 'disabled' : ''}>
-                                    <i class="fas fa-paper-plane"></i> Enviar
-                                </button>
-                            </div>
-                        </form>
-                        <div id="cmd-result" class="mt-3"></div>
-
-                        <hr class="my-4">
-                        <button id="backup-btn" class="btn btn-outline-warning" ${!data.host.hasActiveHost ? 'disabled' : ''}>
-                            <i class="fas fa-save"></i> Backup Manual
-                        </button>
+                        <h5 class="card-title"><i class="fas fa-microchip"></i> Información del Sistema</h5>
+                        <div class="row">
+                            <div class="col-md-3"><strong>Uptime:</strong> ${uptimeStr}</div>
+                            <div class="col-md-3"><strong>Node:</strong> ${data.system?.version || 'N/A'}</div>
+                            <div class="col-md-3"><strong>Plataforma:</strong> ${data.system?.platform || 'N/A'}</div>
+                            <div class="col-md-3"><strong>Memoria:</strong> RSS ${rss}, Heap ${heapUsed}</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- refresh eliminado -->
 
     <!-- Duck CSS Art -->
     <div class="duck" aria-hidden="true">
@@ -291,68 +244,12 @@ function generateDashboardHTML(data) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // Dashboard client-side logic (inline)
+    // Movimiento del ojo del pato (inline)
     (function() {
-      function $(sel) { return document.querySelector(sel); }
-
-      document.addEventListener('DOMContentLoaded', function() {
-        // refresh eliminado
-
-        // Backup manual
-        var backupBtn = $('#backup-btn');
-        if (backupBtn) {
-          backupBtn.addEventListener('click', function() {
-            if (!confirm('¿Iniciar backup manual del servidor?')) return;
-            fetch('/api/host/backup-command', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token: 'admin', command: 'backup_now' })
-            })
-            .then(function(r){ return r.json(); })
-            .then(function(r){
-              alert(r.success ? 'Comando de backup enviado al host' : ('Error: ' + (r.error || 'Solicitud inválida')));
-            })
-            .catch(function(err){ alert('Error de conexión: ' + err.message); });
-          });
-        }
-
-        // Minecraft command form
-        var form = $('#mc-command-form');
-        if (form) {
-          form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            var password = $('#cmd-password').value.trim();
-            var command = $('#cmd-text').value.trim();
-            var resultEl = $('#cmd-result');
-            if (!password || !command) {
-              resultEl.innerHTML = '<div class="alert alert-warning">Introduce contraseña y comando.</div>';
-              return;
-            }
-            resultEl.innerHTML = '<div class="alert alert-info">Enviando comando...</div>';
-            fetch('/api/minecraft/command', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ password: password, command: command })
-            })
-            .then(function(r){ return r.json(); })
-            .then(function(r){
-              if (r.success) {
-                resultEl.innerHTML = '<div class="alert alert-success">Comando enviado correctamente.</div>';
-                form.reset();
-              } else {
-                resultEl.innerHTML = '<div class="alert alert-danger">Error: ' + (r.error || 'Solicitud inválida') + '</div>';
-              }
-            })
-            .catch(function(err){
-              resultEl.innerHTML = '<div class="alert alert-danger">Error de conexión: ' + err.message + '</div>';
-            });
-          });
-        }
-
-        // Duck eye follows cursor (desktop only)
-        var duck = $('.duck');
-        var eye = $('.duck-eye'); // sclera (static)
-        var iris = $('.duck-iris'); // moves
+      function onReady() {
+        var duck = document.querySelector('.duck');
+        var eye = document.querySelector('.duck-eye');
+        var iris = document.querySelector('.duck-iris');
         var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
         if (duck && eye && iris && !coarse) {
           function onMove(e) {
@@ -363,7 +260,6 @@ function generateDashboardHTML(data) {
             var dx = e.clientX - cx;
             var dy = e.clientY - cy;
             var angle = Math.atan2(dy, dx);
-            // Radio de movimiento ampliado: acercamos más el iris al borde
             var margin = ((Math.min(eyeRect.width, eyeRect.height) - Math.min(irisRect.width, irisRect.height)) / 2);
             var max = Math.max(8, margin + 3);
             var tx = Math.cos(angle) * max;
@@ -372,17 +268,19 @@ function generateDashboardHTML(data) {
           }
           window.addEventListener('mousemove', onMove);
         }
-      });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', onReady);
+      } else {
+        onReady();
+      }
     })();
     </script>
 </body>
 </html>`;
 }
 
-/**
- * Generate status page HTML
- */
-// Páginas separadas eliminadas para mantener todo en una sola vista
+// Rutas unificadas: páginas /status y /connections eliminadas
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';

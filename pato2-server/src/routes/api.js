@@ -6,10 +6,10 @@ function createApiRoutes(hostManager, proxyManager) {
 
     // Middleware for API logging
     router.use((req, res, next) => {
-        logger.debug(`API ${req.method} ${req.path}`, { 
-            body: req.body, 
+        logger.debug(`API ${req.method} ${req.path}`, {
+            body: req.body,
             query: req.query,
-            ip: req.ip 
+            ip: req.ip
         });
         next();
     });
@@ -23,14 +23,14 @@ function createApiRoutes(hostManager, proxyManager) {
             const { token, endpoint } = req.body;
 
             if (!token) {
-                return res.status(400).json({ 
-                    accepted: false, 
-                    error: 'Token is required' 
+                return res.status(400).json({
+                    accepted: false,
+                    error: 'Token is required'
                 });
             }
 
             const result = hostManager.offerHost(token, endpoint);
-            
+
             if (!result.accepted) {
                 const statusCode = result.code === 'ALREADY_ACTIVE' ? 409 : 401;
                 return res.status(statusCode).json(result);
@@ -40,9 +40,9 @@ function createApiRoutes(hostManager, proxyManager) {
             res.json(result);
         } catch (error) {
             logger.error('Error in /api/host/offer:', error);
-            res.status(500).json({ 
-                accepted: false, 
-                error: 'Internal server error' 
+            res.status(500).json({
+                accepted: false,
+                error: 'Internal server error'
             });
         }
     });
@@ -56,16 +56,16 @@ function createApiRoutes(hostManager, proxyManager) {
             const { token, leaseId, ready, serverRunning } = req.body;
 
             if (!token || !leaseId) {
-                return res.status(400).json({ 
-                    ok: false, 
-                    error: 'Token and leaseId are required' 
+                return res.status(400).json({
+                    ok: false,
+                    error: 'Token and leaseId are required'
                 });
             }
 
             const result = hostManager.heartbeat(
-                token, 
-                leaseId, 
-                Boolean(ready), 
+                token,
+                leaseId,
+                Boolean(ready),
                 Boolean(serverRunning)
             );
 
@@ -76,9 +76,9 @@ function createApiRoutes(hostManager, proxyManager) {
             res.json(result);
         } catch (error) {
             logger.error('Error in /api/host/heartbeat:', error);
-            res.status(500).json({ 
-                ok: false, 
-                error: 'Internal server error' 
+            res.status(500).json({
+                ok: false,
+                error: 'Internal server error'
             });
         }
     });
@@ -92,14 +92,14 @@ function createApiRoutes(hostManager, proxyManager) {
             const { token } = req.body;
 
             if (!token) {
-                return res.status(400).json({ 
-                    success: false, 
-                    error: 'Token is required' 
+                return res.status(400).json({
+                    success: false,
+                    error: 'Token is required'
                 });
             }
 
             const result = hostManager.endHost(token);
-            
+
             if (!result.success) {
                 return res.status(401).json(result);
             }
@@ -108,9 +108,9 @@ function createApiRoutes(hostManager, proxyManager) {
             res.json(result);
         } catch (error) {
             logger.error('Error in /api/host/end:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Internal server error' 
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error'
             });
         }
     });
@@ -123,7 +123,7 @@ function createApiRoutes(hostManager, proxyManager) {
         try {
             const hostStatus = hostManager.getStatus();
             const proxyStats = proxyManager.getStats();
-            
+
             const status = {
                 system: {
                     uptime: process.uptime(),
@@ -146,8 +146,8 @@ function createApiRoutes(hostManager, proxyManager) {
             res.json(status);
         } catch (error) {
             logger.error('Error in /api/status:', error);
-            res.status(500).json({ 
-                error: 'Internal server error' 
+            res.status(500).json({
+                error: 'Internal server error'
             });
         }
     });
@@ -162,8 +162,8 @@ function createApiRoutes(hostManager, proxyManager) {
             res.json(stats);
         } catch (error) {
             logger.error('Error in /api/proxy/status:', error);
-            res.status(500).json({ 
-                error: 'Internal server error' 
+            res.status(500).json({
+                error: 'Internal server error'
             });
         }
     });
@@ -175,23 +175,23 @@ function createApiRoutes(hostManager, proxyManager) {
     router.post('/proxy/reset-stats', (req, res) => {
         try {
             const { token } = req.body;
-            
+
             if (token !== process.env.HOST_PC_TOKEN) {
-                return res.status(401).json({ 
-                    success: false, 
-                    error: 'Unauthorized' 
+                return res.status(401).json({
+                    success: false,
+                    error: 'Unauthorized'
                 });
             }
 
             proxyManager.resetStats();
             logger.info('Proxy statistics reset');
-            
+
             res.json({ success: true });
         } catch (error) {
             logger.error('Error in /api/proxy/reset-stats:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Internal server error' 
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error'
             });
         }
     });
@@ -203,19 +203,19 @@ function createApiRoutes(hostManager, proxyManager) {
     router.post('/host/backup-command', (req, res) => {
         try {
             const { token, command } = req.body;
-            
+
             if (token !== process.env.HOST_PC_TOKEN) {
-                return res.status(401).json({ 
-                    success: false, 
-                    error: 'Unauthorized' 
+                return res.status(401).json({
+                    success: false,
+                    error: 'Unauthorized'
                 });
             }
 
             const status = hostManager.getStatus();
             if (!status.hasActiveHost || !status.activeHost.connected) {
-                return res.status(404).json({ 
-                    success: false, 
-                    error: 'No active host connected' 
+                return res.status(404).json({
+                    success: false,
+                    error: 'No active host connected'
                 });
             }
 
@@ -225,11 +225,11 @@ function createApiRoutes(hostManager, proxyManager) {
             };
 
             const sent = hostManager.sendToActiveHost(message);
-            
+
             if (!sent) {
-                return res.status(500).json({ 
-                    success: false, 
-                    error: 'Failed to send command to host' 
+                return res.status(500).json({
+                    success: false,
+                    error: 'Failed to send command to host'
                 });
             }
 
@@ -237,50 +237,10 @@ function createApiRoutes(hostManager, proxyManager) {
             res.json({ success: true });
         } catch (error) {
             logger.error('Error in /api/host/backup-command:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Internal server error' 
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error'
             });
-        }
-    });
-
-    /**
-     * POST /api/minecraft/command
-     * Send arbitrary Minecraft server command (password protected)
-     */
-    router.post('/minecraft/command', (req, res) => {
-        try {
-            const { password, command } = req.body || {};
-
-            if (!password || !command || typeof command !== 'string') {
-                return res.status(400).json({ success: false, error: 'Missing password or command' });
-            }
-
-            if (!process.env.COMMAND_PASSWORD) {
-                logger.warn('COMMAND_PASSWORD not set');
-                return res.status(500).json({ success: false, error: 'Server misconfiguration' });
-            }
-
-            if (password !== process.env.COMMAND_PASSWORD) {
-                return res.status(401).json({ success: false, error: 'Unauthorized' });
-            }
-
-            const hostStatus = hostManager.getStatus();
-            if (!hostStatus.hasActiveHost) {
-                return res.status(503).json({ success: false, error: 'No active host' });
-            }
-
-            const message = { type: 'minecraft_command', command };
-            const sent = hostManager.sendToActiveHost(message);
-            if (!sent) {
-                return res.status(500).json({ success: false, error: 'Failed to send command to host' });
-            }
-
-            logger.info(`Minecraft command sent to host: ${command}`);
-            res.json({ success: true });
-        } catch (error) {
-            logger.error('Error in /api/minecraft/command:', error);
-            res.status(500).json({ success: false, error: 'Internal server error' });
         }
     });
 
@@ -289,8 +249,8 @@ function createApiRoutes(hostManager, proxyManager) {
      * Health check endpoint
      */
     router.get('/health', (req, res) => {
-        res.json({ 
-            status: 'ok', 
+        res.json({
+            status: 'ok',
             timestamp: new Date().toISOString(),
             uptime: process.uptime()
         });
@@ -299,7 +259,7 @@ function createApiRoutes(hostManager, proxyManager) {
     // Error handler for API routes
     router.use((error, req, res, next) => {
         logger.error('API Error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Internal server error',
             timestamp: new Date().toISOString()
         });
