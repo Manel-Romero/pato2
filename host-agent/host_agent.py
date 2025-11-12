@@ -341,7 +341,10 @@ class HostAgent:
             target_port = None
         
         port_to_use = target_port or self.config['minecraft_port']
-        self.logger.info(f"Opening stream {stream_id} for client {client_address} -> 127.0.0.1:{port_to_use}")
+        if port_to_use == self.config['minecraft_port']:
+            self.logger.info(f"Jugador Java conectando: {client_address} (stream {stream_id})")
+        else:
+            self.logger.debug(f"Opening stream {stream_id} for client {client_address} -> 127.0.0.1:{port_to_use}")
         
         try:
             # Connect to local Minecraft server
@@ -389,7 +392,7 @@ class HostAgent:
             t = threading.Thread(target=self.udp_receive_loop, args=(client_id, sock), daemon=True)
             self.udp_recv_threads[client_id] = t
             t.start()
-            self.logger.info(f"Opened UDP client {client_id} -> 127.0.0.1:{target_port}")
+            self.logger.info(f"Jugador Bedrock conectando: {client_id} -> 127.0.0.1:{target_port}")
         except Exception as e:
             self.logger.error(f"Failed to open UDP client {client_id}: {e}")
 
@@ -424,7 +427,7 @@ class HostAgent:
                 del self.udp_connections[client_id]
             if client_id in self.udp_recv_threads:
                 del self.udp_recv_threads[client_id]
-            self.logger.info(f"Closed UDP client {client_id}")
+            self.logger.debug(f"Closed UDP client {client_id}")
         except Exception as e:
             self.logger.error(f"Error closing UDP client {client_id}: {e}")
 

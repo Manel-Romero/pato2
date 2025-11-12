@@ -184,7 +184,7 @@ class BackupManager:
         """Upload backup file to Google Drive"""
         try:
             filename = os.path.basename(backup_file)
-            self.logger.info(f"Uploading backup to Google Drive: {filename}")
+            self.logger.info(f"Subiendo backup a Google Drive: {filename}")
             
             # File metadata
             file_metadata = {
@@ -192,23 +192,44 @@ class BackupManager:
                 'parents': [self.folder_id] if self.folder_id else []
             }
             
-            # Upload file
             media = MediaFileUpload(backup_file, resumable=True)
-            file = self.drive_service.files().create(
+            request = self.drive_service.files().create(
                 body=file_metadata,
                 media_body=media,
                 fields='id'
-            ).execute()
-            
-            file_id = file.get('id')
-            self.logger.info(f"Backup uploaded successfully to Google Drive: {file_id}")
+            )
+
+            response = None
+            last_percent = -1
+            try:
+                total_size = os.path.getsize(backup_file)
+            except Exception:
+                total_size = None
+
+            while response is None:
+                status, response = request.next_chunk()
+                if status:
+                    percent = int(status.progress() * 100)
+                    if percent != last_percent:
+                        bar_len = 30
+                        filled_len = int(bar_len * percent / 100)
+                        bar = '█' * filled_len + '-' * (bar_len - filled_len)
+                        if total_size is not None:
+                            uploaded = int(total_size * status.progress())
+                            self.logger.info(f"Progreso subida: |{bar}| {percent}% ({uploaded} bytes)")
+                        else:
+                            self.logger.info(f"Progreso subida: |{bar}| {percent}%")
+                        last_percent = percent
+
+            file_id = response.get('id')
+            self.logger.info(f"Backup subido correctamente a Google Drive: {file_id}")
             return True
             
         except HttpError as e:
-            self.logger.error(f"Google Drive API error: {e}")
+            self.logger.error(f"Error de API de Google Drive: {e}")
             return False
         except Exception as e:
-            self.logger.error(f"Error uploading to Google Drive: {e}")
+            self.logger.error(f"Error subiendo a Google Drive: {e}")
             return False
     
     def _cleanup_old_backups(self):
