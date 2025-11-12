@@ -247,7 +247,7 @@ set "GOOGLE_DRIVE_CLIENT_ID="
 set "GOOGLE_DRIVE_CLIENT_SECRET="
 set "GOOGLE_DRIVE_REFRESH_TOKEN="
 call :log "Generando token de Google Drive con credentials.json..."
-python -c "import sys,json; from google_auth_oauthlib.flow import InstalledAppFlow; SCOPES=['https://www.googleapis.com/auth/drive.file']; cred=sys.argv[1]; data=json.load(open(cred)); ci=data.get('installed',{}).get('client_id',''); cs=data.get('installed',{}).get('client_secret',''); flow=InstalledAppFlow.from_client_secrets_file(cred,SCOPES); creds=flow.run_local_server(port=0); print('CLIENT_ID='+ci); print('CLIENT_SECRET='+cs); print('REFRESH_TOKEN='+(creds.refresh_token or ''))" "%CREDENTIALS_JSON%" > "%CD%\drive_token_output.txt" 2>nul
+python -c "import sys,json; from google_auth_oauthlib.flow import InstalledAppFlow; SCOPES=['https://www.googleapis.com/auth/drive.file']; cred=sys.argv[1]; data=json.load(open(cred)); ci=data.get('installed',{}).get('client_id',''); cs=data.get('installed',{}).get('client_secret',''); flow=InstalledAppFlow.from_client_secrets_file(cred,SCOPES); creds=flow.run_local_server(port=0, access_type='offline', prompt='consent'); print('CLIENT_ID='+ci); print('CLIENT_SECRET='+cs); print('REFRESH_TOKEN='+(creds.refresh_token or ''))" "%CREDENTIALS_JSON%" > "%CD%\drive_token_output.txt" 2>nul
 if %errorLevel% neq 0 (
     call :log "ADVERTENCIA: Falló la generación del token. Revisa credentials.json o dependencias."
 )
