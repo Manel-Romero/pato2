@@ -103,7 +103,7 @@ class BackupManager:
             return False
     
     def _create_local_backup(self) -> Optional[str]:
-        """Create a local ZIP backup with worlds, plugins y archivos clave"""
+        """Create a local ZIP backup with progress"""
         try:
             # Detectar mundos (principal y dimensiones)
             world_name = os.getenv('WORLD_NAME', 'world')
@@ -128,31 +128,68 @@ class BackupManager:
             
             self.logger.info(f"Creating local backup: {backup_path}")
             
-            # Create ZIP file
+            # Pre-calcular tamaño total para barra de progreso
+            total_bytes = 0
+            files_to_zip = []
+            for dir_path, arc_name in world_dirs:
+                for root, _, files in os.walk(dir_path):
+                    for f in files:
+                        fp = os.path.join(root, f)
+                        try:
+                            size = os.path.getsize(fp)
+                        except Exception:
+                            size = 0
+                        files_to_zip.append((fp, os.path.join(arc_name, os.path.relpath(fp, dir_path)), size))
+                        total_bytes += size
+            plugins_dir = os.path.join(self.minecraft_dir, 'plugins')
+            if os.path.exists(plugins_dir):
+                for root, _, files in os.walk(plugins_dir):
+                    for f in files:
+                        fp = os.path.join(root, f)
+                        try:
+                            size = os.path.getsize(fp)
+                        except Exception:
+                            size = 0
+                        files_to_zip.append((fp, os.path.join('plugins', os.path.relpath(fp, plugins_dir)), size))
+                        total_bytes += size
+            important_files = [
+                'server.properties',
+                'whitelist.json',
+                'ops.json',
+                'banned-players.json',
+                'banned-ips.json'
+            ]
+            for filename in important_files:
+                file_path = os.path.join(self.minecraft_dir, filename)
+                if os.path.exists(file_path):
+                    try:
+                        size = os.path.getsize(file_path)
+                    except Exception:
+                        size = 0
+                    files_to_zip.append((file_path, filename, size))
+                    total_bytes += size
+
+            # Crear ZIP con barra de progreso
             with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                # Añadir directorios de mundos
-                for dir_path, arc_name in world_dirs:
-                    self._add_directory_to_zip(zipf, dir_path, arc_name)
-                
-                # Añadir plugins si existen
-                plugins_dir = os.path.join(self.minecraft_dir, 'plugins')
-                if os.path.exists(plugins_dir):
-                    self._add_directory_to_zip(zipf, plugins_dir, 'plugins')
-                
-                # Add server properties and other important files
-                important_files = [
-                    'server.properties',
-                    'whitelist.json',
-                    'ops.json',
-                    'banned-players.json',
-                    'banned-ips.json'
-                ]
-                
-                for filename in important_files:
-                    file_path = os.path.join(self.minecraft_dir, filename)
-                    if os.path.exists(file_path):
-                        zipf.write(file_path, filename)
-                        self.logger.debug(f"Added {filename} to backup")
+                written_bytes = 0
+                steps = 6
+                thresholds = [int(i * (100 / steps)) for i in range(1, steps)] + [100]
+                next_idx = 0
+                for fp, arc, size in files_to_zip:
+                    try:
+                        zipf.write(fp, arc)
+                        written_bytes += size
+                        percent = int((written_bytes / total_bytes) * 100) if total_bytes > 0 else 100
+                        while next_idx < len(thresholds) and percent >= thresholds[next_idx]:
+                            bar_len = 30
+                            filled_len = int(bar_len * thresholds[next_idx] / 100)
+                            bar = '#' * filled_len + '-' * (bar_len - filled_len)
+                            self.logger.info(f"Progreso compresión: |{bar}| {thresholds[next_idx]}% ({written_bytes} / {total_bytes} bytes)")
+                            next_idx += 1
+                    except PermissionError as e:
+                        self.logger.warning(f"Skipping locked file during backup: {fp} ({e})")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to add file to backup: {fp} ({e})")
             
             # Verify backup was created
             if os.path.exists(backup_path):
@@ -213,7 +250,7 @@ class BackupManager:
                     if percent != last_percent:
                         bar_len = 30
                         filled_len = int(bar_len * percent / 100)
-                        bar = '█' * filled_len + '-' * (bar_len - filled_len)
+                        bar = '#' * filled_len + '-' * (bar_len - filled_len)
                         if total_size is not None:
                             uploaded = int(total_size * status.progress())
                             self.logger.info(f"Progreso subida: |{bar}| {percent}% ({uploaded} bytes)")
@@ -312,10 +349,22 @@ class BackupManager:
             with open(download_path, 'wb') as f:
                 downloader = MediaIoBaseDownload(f, request)
                 done = False
+                last_percent = -1
+                total_size = int(file_metadata.get('size', 0)) if file_metadata.get('size') else None
                 while done is False:
                     status, done = downloader.next_chunk()
                     if status:
-                        self.logger.debug(f"Download progress: {int(status.progress() * 100)}%")
+                        percent = int(status.progress() * 100)
+                        if percent != last_percent:
+                            bar_len = 30
+                            filled_len = int(bar_len * percent / 100)
+                            bar = '#' * filled_len + '-' * (bar_len - filled_len)
+                            if total_size:
+                                downloaded = int(total_size * status.progress())
+                                self.logger.info(f"Progreso descarga: |{bar}| {percent}% ({downloaded} bytes)")
+                            else:
+                                self.logger.info(f"Progreso descarga: |{bar}| {percent}%")
+                            last_percent = percent
             
             self.logger.info(f"Backup downloaded successfully: {download_path}")
             return True
@@ -346,10 +395,23 @@ class BackupManager:
             with open(download_path, 'wb') as f:
                 downloader = MediaIoBaseDownload(f, request)
                 done = False
+                last_percent = -1
+                size_meta = latest.get('size')
+                total_size = int(size_meta) if size_meta else None
                 while not done:
                     status, done = downloader.next_chunk()
                     if status:
-                        self.logger.debug(f"Progreso de descarga: {int(status.progress() * 100)}%")
+                        percent = int(status.progress() * 100)
+                        if percent != last_percent:
+                            bar_len = 30
+                            filled_len = int(bar_len * percent / 100)
+                            bar = '#' * filled_len + '-' * (bar_len - filled_len)
+                            if total_size:
+                                downloaded = int(total_size * status.progress())
+                                self.logger.info(f"Progreso descarga: |{bar}| {percent}% ({downloaded} bytes)")
+                            else:
+                                self.logger.info(f"Progreso descarga: |{bar}| {percent}%")
+                            last_percent = percent
 
             self.logger.info(f"Backup descargado correctamente: {download_path}")
             return download_path
@@ -359,7 +421,7 @@ class BackupManager:
             return None
     
     def restore_backup(self, backup_file: str) -> bool:
-        """Restore a backup to the Minecraft directory"""
+        """Restore a backup to the Minecraft directory with progress"""
         try:
             if not os.path.exists(backup_file):
                 self.logger.error(f"Backup file not found: {backup_file}")
@@ -371,7 +433,20 @@ class BackupManager:
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Extract backup
                 with zipfile.ZipFile(backup_file, 'r') as zipf:
-                    zipf.extractall(temp_dir)
+                    infos = zipf.infolist()
+                    total_bytes = sum(info.file_size for info in infos)
+                    extracted_bytes = 0
+                    last_percent = -1
+                    for info in infos:
+                        zipf.extract(info, temp_dir)
+                        extracted_bytes += info.file_size
+                        percent = int((extracted_bytes / total_bytes) * 100) if total_bytes > 0 else 100
+                        if percent != last_percent:
+                            bar_len = 30
+                            filled_len = int(bar_len * percent / 100)
+                            bar = '#' * filled_len + '-' * (bar_len - filled_len)
+                            self.logger.info(f"Progreso descompresión: |{bar}| {percent}% ({extracted_bytes} / {total_bytes} bytes)")
+                            last_percent = percent
                 
                 # Stop Minecraft server if running
                 # (This should be handled by the calling code)
