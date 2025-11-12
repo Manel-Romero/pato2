@@ -73,6 +73,38 @@ class HostAgent:
 
     def load_config(self):
         """Load configuration from environment variables"""
+        # Read config with backward-compatible env names
+        google_client_id = os.getenv('GOOGLE_CLIENT_ID') or os.getenv('GOOGLE_DRIVE_CLIENT_ID')
+        google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET') or os.getenv('GOOGLE_DRIVE_CLIENT_SECRET')
+        google_refresh_token = os.getenv('GOOGLE_REFRESH_TOKEN') or os.getenv('GOOGLE_DRIVE_REFRESH_TOKEN')
+
+        # Backup settings can be provided as hours/days or legacy seconds
+        backups_path = os.getenv('BACKUPS_PATH', './backups')
+        backup_interval_hours_env = os.getenv('BACKUP_INTERVAL_HOURS')
+        backup_retention_days_env = os.getenv('BACKUP_RETENTION_DAYS')
+        if backup_interval_hours_env is not None:
+            try:
+                backup_interval_hours = max(1, int(backup_interval_hours_env.split()[0]))
+            except Exception:
+                backup_interval_hours = 24
+        else:
+            # Legacy BACKUP_INTERVAL in seconds
+            try:
+                backup_interval_hours = max(1, int(int(os.getenv('BACKUP_INTERVAL', '3600').split()[0]) / 3600))
+            except Exception:
+                backup_interval_hours = 24
+
+        if backup_retention_days_env is not None:
+            try:
+                backup_retention_days = int(backup_retention_days_env.split()[0])
+            except Exception:
+                backup_retention_days = 7
+        else:
+            try:
+                backup_retention_days = int(os.getenv('BACKUP_RETENTION', '7').split()[0])
+            except Exception:
+                backup_retention_days = 7
+
         self.config = {
             'host_token': os.getenv('HOST_TOKEN'),
             'pato2_endpoint': os.getenv('PATO2_ENDPOINT', 'http://pato2.duckdns.org:5000'),
@@ -81,14 +113,15 @@ class HostAgent:
             'heartbeat_interval': int(os.getenv('HEARTBEAT_INTERVAL_SECONDS', '15')),
             'reconnect_delay': int(os.getenv('RECONNECT_DELAY_SECONDS', '5')),
             'max_reconnect_attempts': int(os.getenv('MAX_RECONNECT_ATTEMPTS', '10')),
-            # Google Drive credentials
-            'google_drive_client_id': os.getenv('GOOGLE_CLIENT_ID'),
-            'google_drive_client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
-            'google_drive_refresh_token': os.getenv('GOOGLE_REFRESH_TOKEN'),
+            # Google Drive credentials (support both naming styles)
+            'google_drive_client_id': google_client_id,
+            'google_drive_client_secret': google_client_secret,
+            'google_drive_refresh_token': google_refresh_token,
             'google_drive_folder_id': os.getenv('GOOGLE_DRIVE_FOLDER_ID'),
             # Backup settings
-            'backup_interval_hours': max(1, int(int(os.getenv('BACKUP_INTERVAL', '3600').split()[0]) / 3600)),
-            'backup_retention_days': int(os.getenv('BACKUP_RETENTION', '7').split()[0]),
+            'backups_path': backups_path,
+            'backup_interval_hours': backup_interval_hours,
+            'backup_retention_days': backup_retention_days,
         }
 
         # Resolve Pato2 endpoint to IP address once
